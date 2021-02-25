@@ -1,0 +1,51 @@
+{
+	"name": "homebridge-micronova-agua-iot-stove",
+	"version": "0.0.1-alpha",
+	"description": "Homebridge plugin to manage a Micronova's Agua IOT WiFi module controlled stove",
+	"main": "index.js",
+	"scripts": {
+		"lint": "jshint index.js",
+		"test": "npm run lint && echo 'No test :('",
+		"dev": "sudo npm link && sudo hb-service restart"
+	},
+	"engines": {
+		"homebridge": "^1.3.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:securechicken/homebridge-micronova-agua-iot-stove.git"
+	},
+	"keywords": [
+		"homebridge-plugin",
+		"homebridge",
+		"micronova",
+		"agua-iot",
+		"piazzetta",
+		"pellets",
+		"stove",
+		"heater-control"
+	],
+	"author": "@securechicken",
+	"license": "AGPL-3.0-only",
+	"bugs": {
+		"url": "https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues"
+	},
+	"dependencies": {
+		"node-fetch": "^2.6.1",
+		"jsonwebtoken": "^8.5.1"
+	},
+	"devDependencies": {
+		"jshint": "^2.12.0",
+		"np": "^7.0.0"
+	},
+	"jshintConfig": {
+		"bitwise": true,
+		"esversion": 9,
+		"strict": "implied",
+		"undef": true,
+		"unused": true,
+		"module": true,
+		"node": true
+	},
+	"homepage": "https://github.com/securechicken/homebridge-micronova-agua-iot-stove"
+}

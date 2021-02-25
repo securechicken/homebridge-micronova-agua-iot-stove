@@ -1,0 +1,45 @@
+{
+	"pluginAlias": "HeaterCoolerMicronovaAguaIOTStove",
+	"pluginType": "accessory",
+	"singular": true,
+	"headerDisplay": "Homebridge plugin to manage a Micronova's Agua IOT WiFi module controlled stove",
+	"footerDisplay": null,
+	"schema": {
+		"type": "object",
+		"properties": {
+			"name": {
+				"title": "Name",
+				"description": "Stove Name - MUST be the same than one you configured in official stove mobile app, and you now want to control from HomeBridge",
+				"type": "string",
+				"required": true
+			},
+			"brand": {
+				"title": "Stove Brand or Stove official App Name",
+				"description": "Your stove brand, or official stove app name - any other is not supported",
+				"type": "string",
+				"default": "piazzetta",
+				"oneOf": [
+					{ "title": "Piazzetta - MyPiazzetta", "enum": ["piazzetta"] },
+					{ "title": "EvaCalòr - PuntoFuoco", "enum": ["evastampaggi"] },
+					{ "title": "Nordic Fire 2.0", "enum": ["nordicfire"] }
+				],
+				"required": true
+			},
+			"login": {
+				"title": "Login",
+				"description": "Stove official App Login",
+				"type": "string",
+				"format": "email",
+				"required": true
+			},
+			"password": {
+				"title": "Password",
+				"description": "Stove official App Password",
+				"type": "string",
+				"required": true
+			}
+		}
+	},
+	"form": null,
+	"display": null
+}
