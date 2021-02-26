@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "0.0.1-alpha.0";
+const PLUGIN_VERSION = "0.0.1-alpha.1";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
@@ -17,6 +17,38 @@ const jwt = require("jsonwebtoken");
 module.exports = (api) => {
 	api.registerAccessory(ACCESSORY_PLUGIN_NAME, HeaterCoolerMicronovaAguaIOTStove);
 };
+
+// Mapping of supported brands and associated settings.
+const MAP_SUPPORTED_BRANDS = new Map([
+	["piazzetta", ["458632", "https://piazzetta.agua-iot.com"]],
+	["evastampaggi", ["635987", "https://evastampaggi.agua-iot.com"]],
+	["nordicfire", ["132678", "https://nordicfire.agua-iot.com"]],
+	["alphaplam", ["862148", "https://alfaplam.agua-iot.com"]],
+	["elfire", ["402762", "https://elfire.agua-iot.com"]],
+	["karmekone", ["403873", "https://karmekone.agua-iot.com"]],
+	["mcz1", ["354924", "https://remote.mcz.it"]],
+	["mcz2", ["746318", "https://remote.mcz.it"]],
+	["mcz3", ["354925", "https://remote.mcz.it"]],
+	["lorflam", ["121567", "https://lorflam.agua-iot.com"]],
+	["laminox", ["352678", "https://laminox.agua-iot.com"]],
+	["boreal", ["173118", "https://boreal.agua-iot.com"]],
+	["bronpi", ["164873", "https://bronpi.agua-iot.com"]],
+	["solartecnik", ["326495", "https://solartecnik.agua-iot.com"]],
+	["jollymec", ["732584", "https://jollymec.agua-iot.com"]],
+	["globefire", ["634876", "https://globefire.agua-iot.com"]],
+	["timsistem", ["046629", "https://timsistem.agua-iot.com"]],
+	["stufepelletitalia", ["015142", "https://stufepelletitalia.agua-iot.com"]],
+	["mycorisit", ["101427", "https://mycorisit.agua-iot.com"]],
+	["fonteflame", ["848324", "https://fonteflame.agua-iot.com"]],
+	["klover", ["143789", "https://klover.agua-iot.com"]],
+	["amg", ["859435", "https://amg.agua-iot.com"]],
+	["lineavz", ["521228", "https://lineavz.agua-iot.com"]],
+	["thermoflux", ["391278", "https://thermoflux.agua-iot.com"]],
+	["cola", ["475219", "https://cola.agua-iot.com"]],
+	["moretti", ["624813", "https://moretti.agua-iot.com"]],
+	["fontanaforni", ["505912", "https://fontanaforni.agua-iot.com"]],
+	["nina", ["999999", "https://micronova.agua-iot.com"]]
+]);
 
 // Stove status registers (data) constants
 const REGISTER_KEY_ID = "reg_key";
@@ -119,7 +151,7 @@ const POST_API_DEVICEWRITEBUFFER_VALUE_ENDIANESS = ["L"];
 const RESP_API_DEVICEWRITEBUFFER_KEY_JOBID = RESP_API_DEVICEREADBUFFER_KEY_JOBID;
 const API_DEVICEJOBSTATUS = "/deviceJobStatus";
 const API_DEVICEJOBSTATUS_MAX_RETRIES = 5;
-const API_DEVICEJOBSTATUS_DELAY_RETRY = 700; // 500 ms
+const API_DEVICEJOBSTATUS_DELAY_RETRY = 700; // 700 ms
 const RESP_API_DEVICEJOBSTATUS_KEY_STATUS = "jobAnswerStatus";
 const RESP_API_DEVICEJOBSTATUS_KEY_RESULT = "jobAnswerData";
 const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS = POST_API_DEVICEWRITEBUFFER_KEY_ITEMS;
@@ -154,12 +186,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.Characteristic = this.api.hap.Characteristic;
 		this.log.debug("init config: " + JSON.stringify(this.config));
 
-		// Mapping of supported brands and associated settings.
-		this.supportedBrands = new Map([
-			["piazzetta", ["458632", "https://piazzetta.agua-iot.com"]],
-			["evastampaggi", ["635987", "https://evastampaggi.agua-iot.com"]],
-			["nordicfire", ["132678", "https://nordicfire.agua-iot.com"]]
-		]);
 		// Mappings between HomeKit states and API returned one.
 		this.stateMap = new Map([
 			[0, [this.Characteristic.Active.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.INACTIVE]], // OFF, OFF E
@@ -175,8 +201,8 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		]);
 
 		// Authentication and API root URL infos
-		this.apiRoot = this.supportedBrands.get(this.config.brand)[1];
-		this.apiCustomerCode = this.supportedBrands.get(this.config.brand)[0];
+		this.apiRoot = MAP_SUPPORTED_BRANDS.get(this.config.brand)[1];
+		this.apiCustomerCode = MAP_SUPPORTED_BRANDS.get(this.config.brand)[0];
 		this.apiAppUUID = this.api.hap.uuid.generate(PLUGIN_NAME);
 		this.apiPhoneUUID = this.api.hap.uuid.generate(this.config.login);
 		this.apiIsAuth = false;
@@ -219,7 +245,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			.setCharacteristic(this.Characteristic.FirmwareRevision, PLUGIN_NAME)
 			.setCharacteristic(this.Characteristic.HardwareRevision, PLUGIN_AUTHOR);
 
-		// Register app at start, then login, then get a stove device, all necessary to proceed
+		// Register app at start, then login, then get a stove device, and associated values
 		this._registerAPIApp( (err, appok) => {
 			if (appok || !err) {
 				this._setAPILogin(false, (err, tokok) => {
