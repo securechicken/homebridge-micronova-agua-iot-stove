@@ -3,7 +3,7 @@
 
 | :boom: ALPHA STATE         |
 |:---------------------------|
-| This plugin is in ALPHA state, and should only be considered a testing version. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one. Things might not work as expected yet, feel free to open issues to report bugs. |
+| This plugin is in ALPHA state, and should only be considered a possibly *dangerous* testing version. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one. Things might not work as expected yet, or even put heaters in unwanted (yet reversible) states, feel free to open issues to report bugs. |
 
 This plugin implementation has been made possible in a reasonable (free and personal) time, thanks to a previous [stove plugin](https://github.com/securechicken/homebridge-piazzetta-stove-simple) similar development, and an existing open-source [Micronova Agua IOT implementation](https://github.com/fredericvl/py-agua-iot) by @fredericvl (thanks a lot to him).
 
@@ -18,18 +18,13 @@ If you want to test the plugin with a model which is not available but working w
 
 
 ## Capabilities and limitations
-The plugin runs as an Homebridge "Heater Cooler" device type, as it is the only fit device type from Homebridge available interfaces.  
-Specific tricks have been deployed to expose it as a heating only device.  
-The plugin allows for powering ON/OFF, setting target temperature, and flame/flow power.  
-The plugin is only supporting one unique stove (the one of the same name than you will give in this plugin config, and that you previously set up in official mobile app).
+The plugin runs as an Homebridge "Heater Cooler" device type, as it is the only fit device type from Homebridge available interfaces. Specific tricks have been deployed to expose it as a heating only device. The plugin allows for powering ON/OFF, setting target temperature, and flame/flow power. The plugin is only supporting one unique stove (the one of the same name than you will give in this plugin config, and that you previously set up in official mobile app).
 
-The flame/flow power is set through "Fan Rotation Speed" (but is correctly stepped and ranged), as this is the only available control to set such value within HomeKit.  
-As supported stoves do not all enable air flow swinging or physical commands lock, these HomeKit controls are disabled and should not appear in HomeKit (however, due to a bug in HomeKit, the "Fan Swinging" option may still be available, but will do nothing).  
-Temperature is set to be displayed in Celsius degrees.  
-A power-state swing protection mechanism prevents any power-state order (ON or OFF) to be passed to the stove if it is in target state already, or if last power-state change from HomeKit occurred within 60 minutes. Otherwise, automatic HomeKit requests may require power ON/OFF just to sync app widgets and device would end-up over-heating the stove for nothing, or triggering its self-protection.  
-Status like standby, cleaning and alarm will be represented as device ON and status badge "IDLE" (green) in HomeKit.  
-Status of the ignition phases, working and heating will be represented as device ON and status badge "HEATING" (orange) in HomeKit.  
-Any other status is considered as the device being OFF/inactive.
+The flame/flow power is set through "Fan Rotation Speed" (but is correctly stepped and ranged), as this is the only available control to set such value within HomeKit. As supported stoves do not all enable air flow swinging or physical commands lock, these HomeKit controls are disabled and should not appear in HomeKit (however, due to a bug in HomeKit, the "Fan Swinging" option may still be available, but will do nothing). Temperature is set to be displayed in Celsius degrees.
+
+A power-state swing protection mechanism prevents any power-state order (ON or OFF) to be passed to the stove if last power-state change from HomeKit occurred within 60 minutes. Otherwise, you may end-up over-heating the stove for nothing, or triggering its self-protection. If you NEED to go around that, restart the plugin in Homebridge (or the whole instance). 
+
+Status standby, alarm or final cleaning will be represented as device ON and status badge "IDLE" (green) in HomeKit. Status from ignition or working will be represented as device ON and status badge "HEATING" (orange) in HomeKit. OFF statuses are considered as the device being inactive (greyed).
 
 Some status refreshes might not be honored as quickly as HomeKit or Homebridge would like, and the "Unresponsive" message might appear sometimes:
 - Homebridge is by design limiting responsiveness, as it acts as an additional device between HomeKit and real devices,

@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "0.0.1-alpha.1";
+const PLUGIN_VERSION = "0.0.1-alpha.2";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
@@ -167,8 +167,8 @@ const STOVE_ALARM_IGNORE_VALUES = [0, 3, 32]; // 0 is no alarm, 3 is unknown, 32
 const STOVE_TEMP_DELTA = 1;
 const STOVE_POWER_DELTA = 1;
 const STOVE_POWER_STATE_INFO_REGISTER = "status_managed_get";
-const STOVE_POWER_STATE_SET_ON_REGISTER = "status_managed_on_enable";
-const STOVE_POWER_STATE_SET_OFF_REGISTER = "status_managed_off_enable";
+const STOVE_POWER_STATE_SET_ON_REGISTER = STOVE_POWER_STATE_INFO_REGISTER;
+const STOVE_POWER_STATE_SET_OFF_REGISTER = STOVE_POWER_STATE_INFO_REGISTER;
 const STOVE_STATE_REGISTER = "status_get";
 const STOVE_CURRENT_TEMP_REGISTER = "temp_air_get";
 const STOVE_SET_TEMP_REGISTER = "temp_air_set";
@@ -189,11 +189,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		// Mappings between HomeKit states and API returned one.
 		this.stateMap = new Map([
 			[0, [this.Characteristic.Active.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.INACTIVE]], // OFF, OFF E
-			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // TURNING OFF, AWAITING FLAME (+ ERROR 32)
-			[2, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]],
+			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // AWAITING FLAME (+ ERROR 32)
+			[2, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LOAD PELLETS
 			[3, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LIGHTING
 			[4, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // WORRKING
-			[5, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]],
+			[5, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // CLEANING BRASERO
 			[6, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // FINAL CLEANING
 			[7, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // STANDBY
 			[8, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ALARM
@@ -625,7 +625,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					}
 					if (!brokein) {
 						this.apiStoveRegistersSet = true;
-						this.log.debug("_getAPIStoveRegistersMap finished retrieving device, associated IDs and registers");
 						this.log.debug("_getAPIStoveRegistersMap apiStoveRegisters: " + Object.keys(this.apiStoveRegisters));
 						for (const offnamecouple of this.apiStoveOffsetsRegistersMap.entries()) {
 							this.log.debug(offnamecouple[0] + " => " + offnamecouple[1]);
@@ -774,7 +773,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	_getStoveRegister(registername, callback) {
 		if (this.apiStoveRegistersSet) {
 			if (registername in this.apiStoveRegisters) {
-				callback(null, this.apiStoveRegisters[registername]);
+				const register = this.apiStoveRegisters[registername];
+				this.log.debug("_getStoveRegister " + registername + ": " + JSON.stringify(register));
+				callback(null, register);
 			} else {
 				callback("_getStoveRegister register name not in registers: " + registername, null);
 			}
@@ -829,7 +830,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					const calcmin = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MIN]);
 					const calcmax = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MAX]);
 					if ((calcmin !== null) || (calcmax !== null)) {
-						this.log.debug("_getStoveRegisterBoundaries " + registername + ": " + JSON.stringify(register) + " => [" + calcmin + ", " + calcmax + "]");
+						this.log.debug("_getStoveRegisterBoundaries " + registername + " => [" + calcmin + ", " + calcmax + "]");
 						callback(null, [calcmin, calcmax]);
 					} else {
 						callback("_getStoveRegisterBoundaries could not calculate value from register for: " + registername, null);
@@ -846,7 +847,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			this._getStoveRegister(registername, (err, register) => {
 				const calcedval = this._calculateStoveValue(register, false, false, null);
 				if (calcedval !== null) {
-					this.log.debug("_getStoveRegisterValueFromCache " + registername + ": " + JSON.stringify(register) + " => " + calcedval);
+					this.log.debug("_getStoveRegisterValueFromCache " + registername + " => " + calcedval);
 					callback(null, calcedval);
 				} else {
 					callback("_getStoveRegisterValueFromCache could not calculate value from register for: " + registername, null);
@@ -864,7 +865,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				if (value >= register[REGISTER_KEY_MIN] && value <= register[REGISTER_KEY_MAX]) {
 					const calcedval = this._calculateStoveValue(register, false, true, value);
 					if (calcedval) {
-						this.log.debug("_writeStoveRegister asked to write " + registername + "=" + value + " => " + register[REGISTER_KEY_OFFSET] + "=" + calcedval + ")");
+						this.log.debug("_writeStoveRegister asked to write " + registername + "=" + value + " => " + register[REGISTER_KEY_OFFSET] + "=" + calcedval);
 						let regwritepostdata = {};
 						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_ID] = this.apiStoveDeviceID;
 						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_PRODUCT] = this.apiStoveDeviceProduct;
@@ -962,7 +963,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					}
 				});
 			} else if (!ok && !err) {
-				this.log.debug("_updateCharacteristicsValues did nothing (empty cache or job pending)");
+				this.log.debug("_updateCharacteristicsValues did nothing (cache OK or job pending)");
 			} else {
 				this.log.error("_updateCharacteristicsValues failed: " + err);
 			}
@@ -1043,43 +1044,54 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	setStoveActive(state, callback) {
 		let registername = STOVE_POWER_STATE_SET_ON_REGISTER;
 		let targetvaluekey = REGISTER_INTERNAL_KEY_VALUEON;
-		if (state == this.Characteristic.Active.ACTIVE) {
+		if (state == this.Characteristic.Active.INACTIVE) {
 			registername = STOVE_POWER_STATE_SET_OFF_REGISTER;
 			targetvaluekey = REGISTER_INTERNAL_KEY_VALUEOFF;
 		}
 		const dn = Date.now();
 		this._getStoveRegister(STOVE_POWER_STATE_INFO_REGISTER, (err, inforegister) => {
+			let calcerr = err;
 			if (inforegister || !err) {
 				const targetvalue = inforegister[targetvaluekey];
-				const currentvalue = this._calculateStoveValue(inforegister, false, false, null);
-				if (currentvalue === null) {
-					const calcerr = "setStoveActive could not calculate value from register for: " + registername;
-					this.log.error(calcerr);
-					callback(calcerr);
-				} else if (targetvalue === currentvalue) {
-					this.log.debug("setStoveActive stopped by power swing protection: stove already at target state: " + targetvalue + " == " + currentvalue);
-					callback(null);
-				} else if ( (dn - this.lastStovePowerChange) <= POWER_SWING_PROTECTION_DELAY ) {
-					const msg = "setStoveActive stopped by power swing protection: last power change is too close in time (next power state change possible at " + new Date(this.lastStovePowerChange + POWER_SWING_PROTECTION_DELAY) + ")";
-					this.log.warn(msg);
-					callback(msg);
-				} else {
-					this._writeStoveRegister(registername, targetvalue, (err, ok) => {
-						if (ok || !err) {
-							this.stoveService.updateCharacteristic(this.Characteristic.Active, state);
-							this.lastStovePowerChange = dn;
-							this.log.info("setStoveActive set stove to power " + state);
-							callback(null);
+				const currentvalue = inforegister[REGISTER_INTERNAL_KEY_VALUE];
+				this._getStoveRegisterValueFromCache(STOVE_STATE_REGISTER, false, (err, stateregisterval) => {
+					if (stateregisterval || !err) {
+						const currentstate = this._calculateStoveStatus(stateregisterval, false);
+						if (currentstate === null) {
+							calcerr = "setStoveActive could not calculate stove power state: " + registername;
+							this.log.error(calcerr);
+						} else if (currentstate === state) {
+							calcerr = null;
+							this.log.debug("setStoveActive will not change state as stove already at target state: " + currentstate + " == " + state);
+						} else if (targetvalue === currentvalue) {
+							calcerr = null;
+							this.log.debug("setStoveActive will not change state as stove register value already identical: " + targetvalue + " == " + currentvalue);
+						} else if ( (dn - this.lastStovePowerChange) <= POWER_SWING_PROTECTION_DELAY ) {
+							calcerr = "setStoveActive stopped by power swing protection: last power change is too close in time (next power state change possible at " + new Date(this.lastStovePowerChange + POWER_SWING_PROTECTION_DELAY) + ")";
+							this.log.warn(calcerr);
 						} else {
-							this.log.error("setStoveActive failed: " + err);
-							callback(err);
+							this._writeStoveRegister(registername, targetvalue, (err, ok) => {
+								if (ok || !err) {
+									this.stoveService.updateCharacteristic(this.Characteristic.Active, state);
+									this.lastStovePowerChange = dn;
+									this.log.info("setStoveActive set stove to power " + state);
+									calcerr = null;
+								} else {
+									calcerr = "setStoveActive failed: " + err;
+									this.log.error(calcerr);
+								}
+							});
 						}
-					});
-				}
+					} else {
+						calcerr = "setStoveActive could not get current power state: " + err;
+						this.log.error(calcerr);
+					}
+				});
 			} else {
-				this.log.error("setStoveActive could not get current power state: " + err);
-				callback(err);
+				calcerr = "setStoveActive could not get power state management info register: " + err;
+				this.log.error(calcerr);
 			}
+			callback(calcerr);
 		});
 	}
 
@@ -1089,11 +1101,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			if (ok || !err) {
 				this.stoveService.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, temp);
 				this.log.info("setStoveTemp set stove heating temp to " + temp);
-				callback(null);
 			} else {
 				this.log.error("setStoveTemp failed: " + err);
-				callback(err);
 			}
+			callback(err);
 		});
 	}
 
@@ -1103,11 +1114,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			if (ok || !err) {
 				this.stoveService.updateCharacteristic(this.Characteristic.RotationSpeed, power);
 				this.log.info("setStovePower set stove power to " + power);
-				callback(null);
 			} else {
 				this.log.error("setStovePower failed: " + err);
-				callback(err);
 			}
+			callback(err);
 		});
 	}
 }
