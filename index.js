@@ -75,7 +75,7 @@ const REGISTER_VALUE_FORMULA_REGEX = /^([()\d][+\-*/]?)+$/;
 const REGISTER_VALUE_STRING_VALPH = "{0}";
 
 // API related constants
-// Doc: https://<brand>.agua-iot.com:3001/api-docs/
+// Doc: http://<brand>.agua-iot.com:3001/api-docs/
 const HTTP_TIMEOUT = 5000; // 5s in ms, the web service is somehow laggy
 const HTTP_REQ_ACCEPT_HEADER = "Accept";
 const HTTP_REQ_CONTENT_HEADER = "Content-Type";
@@ -150,7 +150,7 @@ const POST_API_DEVICEWRITEBUFFER_VALUE_BITDATA = [8];
 const POST_API_DEVICEWRITEBUFFER_VALUE_ENDIANESS = ["L"];
 const RESP_API_DEVICEWRITEBUFFER_KEY_JOBID = RESP_API_DEVICEREADBUFFER_KEY_JOBID;
 const API_DEVICEJOBSTATUS = "/deviceJobStatus";
-const API_DEVICEJOBSTATUS_MAX_RETRIES = 5;
+const API_DEVICEJOBSTATUS_MAX_RETRIES = 10;
 const API_DEVICEJOBSTATUS_DELAY_RETRY = 700; // 700 ms
 const RESP_API_DEVICEJOBSTATUS_KEY_STATUS = "jobAnswerStatus";
 const RESP_API_DEVICEJOBSTATUS_KEY_RESULT = "jobAnswerData";
@@ -189,9 +189,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		// Mappings between HomeKit states and API returned one.
 		this.stateMap = new Map([
 			[0, [this.Characteristic.Active.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.INACTIVE]], // OFF, OFF E
-			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // TURNING OFF, AWAITING FLAME (+ ERROR 32)
+			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // TURNING OFF, AWAITING FLAME (+ ERROR 32)
 			[2, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]],
-			[3, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // LIGHTING
+			[3, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LIGHTING
 			[4, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // WORRKING
 			[5, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]],
 			[6, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // FINAL CLEANING
@@ -232,10 +232,16 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.apiPendingReadJob = false;
 		// Anti power swinging protection
 		this.lastStovePowerChange = null;
+		// Default characteristics value when nothing is available yet
+		this.stoveCharDefaultActive = this.Characteristic.Active.INACTIVE;
+		this.stoveCharDefaultState = this.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+		this.stoveCharDefaultTemp = 0;
+		this.stoveCharDefaultSetTemp = 0;
+		this.stoveCharDefaultPower = 0;
 
 		// Heater Cooler service
 		const sname = this.config.name || ACCESSORY_PLUGIN_NAME;
-		this.service = new this.Service.HeaterCooler(sname);
+		this.stoveService = new this.Service.HeaterCooler(sname);
 		// Device infos
 		this.infoService = new this.Service.AccessoryInformation();
 		this.infoService
@@ -259,45 +265,50 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								// Set API provided characteristics limits
 								this._getStoveRegisterBoundaries(STOVE_CURRENT_TEMP_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
-										this.service.getCharacteristic(this.Characteristic.CurrentTemperature)
+										this.stoveService.getCharacteristic(this.Characteristic.CurrentTemperature)
 											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: STOVE_TEMP_DELTA});
+										this.stoveCharDefaultTemp = boundaries[0];
 									} else {
 										this.log.error("init could not get stove current temperature boundaries: " + err);
 									}
 								});
 								this._getStoveRegisterBoundaries(STOVE_SET_TEMP_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
-										this.service.getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
+										this.stoveService.getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
 											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: STOVE_TEMP_DELTA});
+										this.stoveCharDefaultSetTemp = boundaries[0];
 									} else {
 										this.log.error("init could not get stove temperature threshold boundaries: " + err);
 									}
 								});
 								this._getStoveRegisterBoundaries(STOVE_SET_POWER_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
-										this.service.getCharacteristic(this.Characteristic.RotationSpeed)
+										this.stoveService.getCharacteristic(this.Characteristic.RotationSpeed)
 											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: STOVE_POWER_DELTA});
+										this.stoveCharDefaultPower = boundaries[0];
 									} else {
 										this.log.error("init could not get stove power boundaries: " + err);
 									}
 								});
+								// Ask for registers data and Homebridge chracteristics update
+								this._updateCharacteristicsValues();
 								// Services methods and events handling
 								// Set them in API callback so they do not trigger events while API provided infos are not yet retrieved
-								this.service.getCharacteristic(this.Characteristic.Active)
+								this.stoveService.getCharacteristic(this.Characteristic.Active)
 									.on("get", this.getStoveActive.bind(this))
 									.on("set", this.setStoveActive.bind(this));
-								this.service.getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
+								this.stoveService.getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
 									.on("get", this.getStoveState.bind(this));
-								this.service.getCharacteristic(this.Characteristic.CurrentTemperature)
+								this.stoveService.getCharacteristic(this.Characteristic.CurrentTemperature)
 									.on("get", this.getStoveCurrentTemp.bind(this));
-								this.service.getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
+								this.stoveService.getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
 									.on("get", this.getStoveSetTemp.bind(this))
 									.on("set", this.setStoveTemp.bind(this));
-								this.service.getCharacteristic(this.Characteristic.RotationSpeed)
+								this.stoveService.getCharacteristic(this.Characteristic.RotationSpeed)
 									.on("get", this.getStovePower.bind(this))
 									.on("set", this.setStovePower.bind(this));
 							} else {
-								this.log.error("init could not retrieve required stove data from API: " + err);
+								this.log.error("init could not retrieve required stove info from API: " + err);
 							}
 						}); 
 					} else {
@@ -312,48 +323,48 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		// Set characteristics properties boundaries and valid values
 		// Setting CurrentHeaterCoolerState and TargetHeaterCoolerState allows to
 		// lock device to heater mode only
-		this.service.getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
+		this.stoveService.getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
 			.setProps({
 				minValue: this.Characteristic.CurrentHeaterCoolerState.INACTIVE,
 				maxValue: this.Characteristic.CurrentHeaterCoolerState.HEATING,
 				validValues: [this.Characteristic.CurrentHeaterCoolerState.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE, this.Characteristic.CurrentHeaterCoolerState.HEATING]
 			});
-		this.service.getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
+		this.stoveService.getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
 			.setProps({
 				minValue: this.Characteristic.TargetHeaterCoolerState.HEAT,
 				maxValue: this.Characteristic.TargetHeaterCoolerState.HEAT,
 				validValues: [this.Characteristic.TargetHeaterCoolerState.HEAT]
 			});
-		this.service.getCharacteristic(this.Characteristic.LockPhysicalControls)
+		this.stoveService.getCharacteristic(this.Characteristic.LockPhysicalControls)
 			.setProps({
 				minValue: this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
 				maxValue: this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
 				validValues: [this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED]
 			});
-		this.service.getCharacteristic(this.Characteristic.SwingMode)
+		this.stoveService.getCharacteristic(this.Characteristic.SwingMode)
 			.setProps({
 				minValue: this.Characteristic.SwingMode.SWING_DISABLED,
 				maxValue: this.Characteristic.SwingMode.SWING_DISABLED,
 				validValues: [this.Characteristic.SwingMode.SWING_DISABLED]
 			});
-		this.service.getCharacteristic(this.Characteristic.TemperatureDisplayUnits)
+		this.stoveService.getCharacteristic(this.Characteristic.TemperatureDisplayUnits)
 			.setProps({
 				minValue: this.Characteristic.TemperatureDisplayUnits.CELSIUS,
 				maxValue: this.Characteristic.TemperatureDisplayUnits.CELSIUS,
 				validValues: [this.Characteristic.TemperatureDisplayUnits.CELSIUS]
 			});
 		// Forced initial arbitrary states
-		this.service.setCharacteristic(this.Characteristic.Active, this.Characteristic.Active.INACTIVE);
-		this.service.setCharacteristic(this.Characteristic.CurrentHeaterCoolerState, this.Characteristic.CurrentHeaterCoolerState.INACTIVE);
-		this.service.setCharacteristic(this.Characteristic.TargetHeaterCoolerState, this.Characteristic.TargetHeaterCoolerState.HEAT);
-		this.service.setCharacteristic(this.Characteristic.TemperatureDisplayUnits, this.Characteristic.TemperatureDisplayUnits.CELSIUS);
-		this.service.setCharacteristic(this.Characteristic.LockPhysicalControls, this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED);
-		this.service.setCharacteristic(this.Characteristic.SwingMode, this.Characteristic.SwingMode.SWING_DISABLED);
+		this.stoveService.setCharacteristic(this.Characteristic.Active, this.stoveCharDefaultActive);
+		this.stoveService.setCharacteristic(this.Characteristic.CurrentHeaterCoolerState, this.stoveCharDefaultState);
+		this.stoveService.setCharacteristic(this.Characteristic.TargetHeaterCoolerState, this.Characteristic.TargetHeaterCoolerState.HEAT);
+		this.stoveService.setCharacteristic(this.Characteristic.TemperatureDisplayUnits, this.Characteristic.TemperatureDisplayUnits.CELSIUS);
+		this.stoveService.setCharacteristic(this.Characteristic.LockPhysicalControls, this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED);
+		this.stoveService.setCharacteristic(this.Characteristic.SwingMode, this.Characteristic.SwingMode.SWING_DISABLED);
 	}
 
 	// Mandatory services export method
 	getServices() {
-		return [this.infoService, this.service];
+		return [this.infoService, this.stoveService];
 	}
 
 	// API app registering helper
@@ -720,28 +731,17 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Wait for read registers to be available in cache, while a read job is pending with API
-	_waitForRegistersDataCache(attempt, callback) {
-		if (attempt < API_DEVICEJOBSTATUS_MAX_RETRIES) {
-			if (!this.apiPendingReadJob) {
-				this.log.debug("_waitForRegistersDataCache attempt " + attempt + " completed");
-				callback(null, true);
-			} else {
-				this.log.debug("_waitForRegistersDataCache attempt " + attempt + " needs to schedule another attempt");
-				setTimeout(this._waitForRegistersDataCache.bind(this), API_DEVICEJOBSTATUS_DELAY_RETRY, attempt + 1, callback);
-			}
-		} else {
-			callback("_waitForRegistersDataCache did not complete in " + API_DEVICEJOBSTATUS_MAX_RETRIES + " attempts", null);
-		}
-	}
-
-	// Get stove registers from internal cache, or get an update from API if obsolete
-	_getStoveRegisters(callback) {
-		this.log.debug("_getStoveRegisters called, apiStoveRegistersSet=" + this.apiStoveRegistersSet + ", apiPendingReadJob=" + this.apiPendingReadJob);
+	// Update registers data cache from API values
+	_updateAPIRegistersData(callback) {
+		this.log.debug("_updateAPIRegistersData called, apiStoveRegistersSet=" + this.apiStoveRegistersSet + ", apiPendingReadJob=" + this.apiPendingReadJob);
 		if (this.apiStoveRegistersSet) {
-			// If an API read job is already pending, or cache did not expire, wait for data to be available in cache (or immediately get cache)
-			if ( this.apiPendingReadJob || ((this.lastStoveRegistersUpdate + STOVE_REGISTERS_CACHE_KEEP) >= Date.now()) ) {
-				this._waitForRegistersDataCache(0, callback);
+			// If an API read job is already pending, or cache did not expire, do nothing
+			if (this.apiPendingReadJob) {
+				this.log.debug("_updateAPIRegistersData will do nothing, a job is pending: " + this.apiPendingReadJob);
+				callback(null, false);
+			} else if ((this.lastStoveRegistersUpdate + STOVE_REGISTERS_CACHE_KEEP) >= Date.now()) {
+				this.log.debug("_updateAPIRegistersData will do nothing, cache is up to date");
+				callback(null, false);
 			// Otherwise, schedule an API read job, then wait for it to complete to fill the cache
 			} else {
 				// This var is doing the magic on knowing if a read job is already scheduled
@@ -758,33 +758,23 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								callback(err, registersok);
 							});
 						} else {
-							callback("_getStoveRegisters did not get expected answer from API: " + JSON.stringify(json), null);
+							callback("_updateAPIRegistersData did not get expected answer from API: " + JSON.stringify(json), null);
 						}
 					} else {
-						callback("_getStoveRegisters API request failed: " + err, null);
+						callback("_updateAPIRegistersData API request failed: " + err, null);
 					}
 				});
 			}
 		} else {
-			callback("_getStoveRegisters cannot get registers: map not set yet", null);
+			callback("_updateAPIRegistersData cannot set registers: registers map not set yet", null);
 		}
 	}
 
 	// Get a single register structure
-	_getStoveRegister(registername, withvalue, callback) {
+	_getStoveRegister(registername, callback) {
 		if (this.apiStoveRegistersSet) {
 			if (registername in this.apiStoveRegisters) {
-				if (withvalue) {
-					this._getStoveRegisters( (err, registersok) => {
-						if (registersok || !err) {
-							callback(null, this.apiStoveRegisters[registername]);
-						} else {
-							callback("_getStoveRegister failed: " + err, null);
-						}
-					});
-				} else {
-					callback(null, this.apiStoveRegisters[registername]);
-				}
+				callback(null, this.apiStoveRegisters[registername]);
 			} else {
 				callback("_getStoveRegister register name not in registers: " + registername, null);
 			}
@@ -834,7 +824,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Get a register min and max boundaries as [min, max] array
 	_getStoveRegisterBoundaries(registername, callback) {
-		this._getStoveRegister(registername, false, (err, register) => {
+		this._getStoveRegister(registername, (err, register) => {
 			if (register || !err) {
 					const calcmin = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MIN]);
 					const calcmax = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MAX]);
@@ -850,26 +840,26 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Get a unique register value
-	_getStoveRegisterValue(registername, tostring, callback) {
-		this._getStoveRegister(registername, true, (err, register) => {
-			if (register || !err) {
+	// Get a unique register value, forced from cache
+	_getStoveRegisterValueFromCache(registername, tostring, callback) {
+		if (this.lastStoveRegistersUpdate) {
+			this._getStoveRegister(registername, (err, register) => {
 				const calcedval = this._calculateStoveValue(register, false, false, null);
 				if (calcedval !== null) {
-					this.log.debug("_getStoveRegisterValue " + registername + ": " + JSON.stringify(register) + " => " + calcedval);
+					this.log.debug("_getStoveRegisterValueFromCache " + registername + ": " + JSON.stringify(register) + " => " + calcedval);
 					callback(null, calcedval);
 				} else {
-					callback("_getStoveRegisterValue could not calculate value from register for: " + registername, null);
+					callback("_getStoveRegisterValueFromCache could not calculate value from register for: " + registername, null);
 				}
-			} else {
-				callback("_getStoveRegisterValue failed to get stove register " + registername + ": " + err, null);
-			}
-		});
+			});
+		} else {
+			callback("_getStoveRegisterValueFromCache " + registername + ": not possible, cache empty", null);
+		}
 	}
 
 	// Write a stove register to API
 	_writeStoveRegister(registername, value, callback) {
-		this._getStoveRegister(registername, false, (err, register) => {
+		this._getStoveRegister(registername, (err, register) => {
 			if (register || !err) {
 				if (value >= register[REGISTER_KEY_MIN] && value <= register[REGISTER_KEY_MAX]) {
 					const calcedval = this._calculateStoveValue(register, false, true, value);
@@ -892,6 +882,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 											if (RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE in res) {
 												callback("_writeStoveRegister API job returned an error: " + res[RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE], null);
 											} else {
+												register[REGISTER_INTERNAL_KEY_VALUE] = calcedval;
 												this.log.debug("_writeStoveRegister wrote registers in API");
 												callback(null, true);
 											}
@@ -918,35 +909,134 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Get stove status (active or state)
-	getStoveStatus(state, callback) {
-		let active = this.Characteristic.Active.INACTIVE;
-		if (state) {
-			active = this.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+	// Determine stove status based on register data
+	_calculateStoveStatus(value, state) {
+		let ret = null;
+		if (this.stateMap.has(value)) {
+			const index = (state) ? (1) : (0);
+			ret = this.stateMap.get(value)[index];
+		} else {
+			this.log.error("_calculateStoveStatus (" + state + ") has no map key for value: " + value);
 		}
-		this._getStoveRegisterValue(STOVE_STATE_REGISTER, false, (err, value) => {
-			if (value || !err) {
-				if (this.stateMap.has(value)) {
-					let index = 0;
-					if (state) {
-						index = 1;
+		return ret;
+	}
+
+	// Update Homebridge device characteristics values
+	_updateCharacteristicsValues() {
+		this._updateAPIRegistersData((err, ok) => {
+			if (ok) {
+				this._getStoveRegisterValueFromCache(STOVE_STATE_REGISTER, false, (err, value) => {
+					if ((value !== null) || !err) {
+						const active = this._calculateStoveStatus(value, false);
+						this.stoveService.updateCharacteristic(this.Characteristic.Active, active);
+						this.log.debug("_updateCharacteristicsValues Active: " + value + " => " + active + ", (ERR: " + err + ")");
+						const status = this._calculateStoveStatus(value, true);
+						this.stoveService.updateCharacteristic(this.Characteristic.CurrentHeaterCoolerState, status);
+						this.log.debug("_updateCharacteristicsValues CurrentHeaterCoolerState: " + value + " => " + active + ", (ERR: " + err + ")");
+					} else {
+						this.log.error("_updateCharacteristicsValues failed from " + STOVE_STATE_REGISTER + ": " + err);
 					}
-					active = this.stateMap.get(value)[index];
-				} else {
-					err = "_getStoveStatus (" + state + ") has no map key for value: " + value;
-					this.log.error(err);
-				}
-				this.log.debug("_getStoveStatus (" + state + "): " + value + " => " + active);
+				});
+				this._getStoveRegisterValueFromCache(STOVE_CURRENT_TEMP_REGISTER, false, (err, value) => {
+					if ((value !== null) || !err) {
+						this.stoveService.updateCharacteristic(this.Characteristic.CurrentTemperature, value);
+						this.log.debug("_updateCharacteristicsValues CurrentTemperature: " + value + ", (ERR: " + err + ")");
+					} else {
+						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_TEMP_REGISTER + ": " + err);
+					}
+				});
+				this._getStoveRegisterValueFromCache(STOVE_SET_TEMP_REGISTER, false, (err, value) => {
+					if ((value !== null) || !err) {
+						this.stoveService.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, value);
+						this.log.debug("_updateCharacteristicsValues HeatingThresholdTemperature: " + value + ", (ERR: " + err + ")");
+					} else {
+						this.log.error("_updateCharacteristicsValues failed from " + STOVE_SET_TEMP_REGISTER + ": " + err);
+					}
+				});
+				this._getStoveRegisterValueFromCache(STOVE_CURRENT_POWER_REGISTER, false, (err, value) => {
+					if ((value !== null) || !err) {
+						this.stoveService.updateCharacteristic(this.Characteristic.RotationSpeed, value);
+						this.log.debug("_updateCharacteristicsValues RotationSpeed: " + value + ", (ERR: " + err + ")");
+					} else {
+						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_POWER_REGISTER + ": " + err);
+					}
+				});
+			} else if (!ok && !err) {
+				this.log.debug("_updateCharacteristicsValues did nothing (empty cache or job pending)");
 			} else {
-				this.log.error("_getStoveStatus (" + state + ") failed: " + err);
+				this.log.error("_updateCharacteristicsValues failed: " + err);
 			}
-			callback(err, active);
 		});
 	}
 
+	// Get stove status (active or state)
+	_getStoveStatus(state, callback) {
+		let active = this.stoveCharDefaultActive;
+		if (state) {
+			active = this.stoveCharDefaultState;
+		}
+		this._getStoveRegisterValueFromCache(STOVE_STATE_REGISTER, false, (err, value) => {
+			if (value !== null) {
+				active = this._calculateStoveStatus(value, state);
+			}
+			callback(err, active);
+		});
+		this._updateCharacteristicsValues();
+	}
+
+	// Generic getter wrapper
+	_getterWrapper(registername, defaultvalue, callback) {
+		this._getStoveRegisterValueFromCache(registername, false, (err, value) => {
+			let appliedval = defaultvalue;
+			if (value == null) {
+				this.log.debug("_getterWrapper got null value, ERR: " + err);
+			} else {
+				appliedval = value;
+			}
+			callback(null, appliedval);
+		});
+		this._updateCharacteristicsValues();
+	}
+
+	/* ACTUAL GETTER/SETTERS for HomeBridge Interface
+	* As the API submit job/query job result design and responsiveness is too slow
+	* for HomeBridge/HomeKit to feel well with, the GETTERS strategy complies with the
+	* following description in order to better global responsiveness:
+	* - Registers data are obtained once first during plugin init, to ensure an internal
+	*   cache is filled.
+	* - Each get event is responded immediately by querying register value from cache, 
+	*   whatever old it is, so the HomeBridge callback logic is called as fast as 
+	*   possible with it, and Homebridge/HomeKit do not hang.
+	* - Another register data read is then done, this time by checking if cache is old.
+	*   If cache is old, the registers data will be updated from API. At the end of the
+	*   update, the Homebridge characteristic is updated with most up to date value. If
+	*   it changed from the first that has been server, Homebridge will trigger an
+	*   asynchronous update of it in HomeKi (just as when characteristics are set).
+	*/
+
 	// Get ON/OFF state
 	getStoveActive(callback) {
-		this.getStoveStatus(false, callback);
+		this._getStoveStatus(false, callback);
+	}
+
+	// Get running state (more precise than ON/OFF)
+	getStoveState(callback) {
+		this._getStoveStatus(true, callback);
+	}
+
+	// Get stove measured air temp
+	getStoveCurrentTemp(callback) {
+		this._getterWrapper(STOVE_CURRENT_TEMP_REGISTER, this.stoveCharDefaultTemp, callback);
+	}
+
+	// Get threshold temperature from which to power on heating
+	getStoveSetTemp(callback) {
+		this._getterWrapper(STOVE_SET_TEMP_REGISTER, this.stoveCharDefaultSetTemp, callback);
+	}
+
+	// Get stove current running power
+	getStovePower(callback) {
+		this._getterWrapper(STOVE_CURRENT_POWER_REGISTER, this.stoveCharDefaultPower, callback);
 	}
 
 	// Set ON/OFF
@@ -958,7 +1048,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			targetvaluekey = REGISTER_INTERNAL_KEY_VALUEOFF;
 		}
 		const dn = Date.now();
-		this._getStoveRegister(STOVE_POWER_STATE_INFO_REGISTER, false, (err, inforegister) => {
+		this._getStoveRegister(STOVE_POWER_STATE_INFO_REGISTER, (err, inforegister) => {
 			if (inforegister || !err) {
 				const targetvalue = inforegister[targetvaluekey];
 				const currentvalue = this._calculateStoveValue(inforegister, false, false, null);
@@ -976,7 +1066,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				} else {
 					this._writeStoveRegister(registername, targetvalue, (err, ok) => {
 						if (ok || !err) {
-							this.service.updateCharacteristic(this.Characteristic.Active, state);
+							this.stoveService.updateCharacteristic(this.Characteristic.Active, state);
 							this.lastStovePowerChange = dn;
 							this.log.info("setStoveActive set stove to power " + state);
 							callback(null);
@@ -993,40 +1083,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Get running state (more precise than ON/OFF)
-	getStoveState(callback) {
-		this.getStoveStatus(true, callback);
-	}
-
-	// Get stove measured air temp
-	getStoveCurrentTemp(callback) {
-		this._getStoveRegisterValue(STOVE_CURRENT_TEMP_REGISTER, false, (err, value) => {
-			if (value || !err) {
-				this.log.debug("getStoveCurrentTemp: " + value);
-			} else {
-				this.log.error("getStoveCurrentTemp failed: " + err);
-			}
-			callback(err, value);
-		});
-	}
-
-	// Get threshold temperature from which to power on heating
-	getStoveSetTemp(callback) {
-		this._getStoveRegisterValue(STOVE_SET_TEMP_REGISTER, false, (err, value) => {
-			if (value || !err) {
-				this.log.debug("getStoveSetTemp: " + value);
-			} else {
-				this.log.error("getStoveSetTemp failed: " + err);
-			}
-			callback(err, value);
-		});
-	}
-
 	// Set threshold temperature from which to power on heating
 	setStoveTemp(temp, callback) {
 		this._writeStoveRegister(STOVE_SET_TEMP_REGISTER, temp, (err, ok) => {
 			if (ok || !err) {
-				this.service.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, temp);
+				this.stoveService.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, temp);
 				this.log.info("setStoveTemp set stove heating temp to " + temp);
 				callback(null);
 			} else {
@@ -1036,23 +1097,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Get stove current running power
-	getStovePower(callback) {
-		this._getStoveRegisterValue(STOVE_CURRENT_POWER_REGISTER, false, (err, value) => {
-			if (value || !err) {
-				this.log.debug("getStovePower: " + value);
-			} else {
-				this.log.error("getStovePower failed: " + err);
-			}
-			callback(err, value);
-		});
-	}
-
 	// Set stove running power
 	setStovePower(power, callback) {
 		this._writeStoveRegister(STOVE_SET_POWER_REGISTER, power, (err, ok) => {
 			if (ok || !err) {
-				this.service.updateCharacteristic(this.Characteristic.RotationSpeed, power);
+				this.stoveService.updateCharacteristic(this.Characteristic.RotationSpeed, power);
 				this.log.info("setStovePower set stove power to " + power);
 				callback(null);
 			} else {
