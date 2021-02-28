@@ -184,6 +184,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.log = log;
 		this.Service = this.api.hap.Service;
 		this.Characteristic = this.api.hap.Characteristic;
+
+		if (!( (this.config) && (this.config.brand) && (this.config.login) && (this.config.password) )) {
+			this.log.error("Plugin configuration is not valid: every value must be set");
+			return;
+		}
 		this.log.debug("init config: " + JSON.stringify(this.config));
 
 		// Mappings between HomeKit states and API returned one.

@@ -15,3 +15,5 @@
 - Added: first public alpha and package.
 
 ## [Unreleased]
+- Fixed: inconsistant shown initial default state
+- Added: to comply with Homebridge verified guidelines, plugins will not load if conf empty or invalid.
