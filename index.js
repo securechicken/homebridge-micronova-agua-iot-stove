@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "0.0.1-alpha.2";
+const PLUGIN_VERSION = "0.0.1-alpha.3";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
@@ -356,7 +356,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		// Forced initial arbitrary states
 		this.stoveService.setCharacteristic(this.Characteristic.Active, this.stoveCharDefaultActive);
 		this.stoveService.setCharacteristic(this.Characteristic.CurrentHeaterCoolerState, this.stoveCharDefaultState);
-		this.stoveService.setCharacteristic(this.Characteristic.TargetHeaterCoolerState, this.Characteristic.TargetHeaterCoolerState.HEAT);
+		this.stoveService.setCharacteristic(this.Characteristic.TargetHeaterCoolerState, this.stoveCharDefaultState);
 		this.stoveService.setCharacteristic(this.Characteristic.TemperatureDisplayUnits, this.Characteristic.TemperatureDisplayUnits.CELSIUS);
 		this.stoveService.setCharacteristic(this.Characteristic.LockPhysicalControls, this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED);
 		this.stoveService.setCharacteristic(this.Characteristic.SwingMode, this.Characteristic.SwingMode.SWING_DISABLED);
@@ -989,7 +989,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	_getterWrapper(registername, defaultvalue, callback) {
 		this._getStoveRegisterValueFromCache(registername, false, (err, value) => {
 			let appliedval = defaultvalue;
-			if (value == null) {
+			if (value === null) {
 				this.log.debug("_getterWrapper got null value, ERR: " + err);
 			} else {
 				appliedval = value;
