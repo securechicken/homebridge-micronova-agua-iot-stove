@@ -48,6 +48,7 @@ The result is saved in Homebridge config and looks like this, but should not to 
     "brand": "<stove brand, to be chosen from a list, as it actually affects plugin internal settings>",
     "login": "<Your regular stove app login (MyPiazzetta for Piazzetta stoves)>",
     "password": "<Your regular stove app password (MyPiazzetta for Piazzetta stoves)>",
+    "debug": false,
     "accessory": "HeaterCoolerMicronovaAguaIOTStove"
 }
 ```

@@ -185,11 +185,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.Service = this.api.hap.Service;
 		this.Characteristic = this.api.hap.Characteristic;
 
-		if (!( (this.config) && (this.config.brand) && (this.config.login) && (this.config.password) )) {
+		if (!( (this.config) && (this.config.brand) && (this.config.login) && (this.config.password) && (this.config.debug) )) {
 			this.log.error("Plugin configuration is not valid: every value must be set");
 			return;
 		}
-		this.log.debug("init config: " + JSON.stringify(this.config));
+		this._debug("init config: " + JSON.stringify(this.config));
 
 		// Mappings between HomeKit states and API returned one.
 		this.stateMap = new Map([
@@ -369,6 +369,15 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		return [this.infoService, this.stoveService];
 	}
 
+	// Debug logs output
+	_debug(message) {
+		if (this.config.debug) {
+			this.log.info("[DEBUG] " + message);
+		} else {
+			this.log.debug(message);
+		}
+	}
+
 	// API app registering helper
 	_registerAPIApp(callback) {
 		const url = this.apiRoot + API_APPSIGNUP;
@@ -383,7 +392,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		fetch(url, {method: "POST", body: JSON.stringify(postdata), timeout: HTTP_TIMEOUT, headers: this.apiHTTPHeaders, redirect: "error"})
 			.then( (resp) => {
 				if (resp.ok) {
-					this.log.debug("_registerAPIApp got a response with OK status");
+					this._debug("_registerAPIApp got a response with OK status");
 					callback(null, true);
 				} else {
 					throw new Error("_registerAPIApp could not register an app to API (wrong brand in config), got status: " + resp.status);
@@ -397,9 +406,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	// API login and auth auto-refresh helper
 	_setAPILogin(refresh, callback) {
 		if (!refresh) {
-			this.log.debug("_setAPILogin attempting log-in");
+			this._debug("_setAPILogin attempting log-in");
 		} else {
-			this.log.debug("_setAPILogin refreshing authentication");
+			this._debug("_setAPILogin refreshing authentication");
 		}
 		this.isAuth = false;
 		let url = this.apiRoot;
@@ -430,11 +439,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				}
 			})
 			.then( (jsonresp) => {
-				this.log.debug("_setAPILogin got a OK response");
+				this._debug("_setAPILogin got a OK response");
 				let jwset = null;
 				if (jsonresp && (RESP_API_LOGIN_KEY_TOKEN in jsonresp) && (refresh || (RESP_API_LOGIN_KEY_REFRESHTOKEN in jsonresp))) {
 					jwset = jwt.decode(jsonresp[RESP_API_LOGIN_KEY_TOKEN]);
-					this.log.debug("_setAPILogin got JWT token decoded as: " + JSON.stringify(jwset));
+					this._debug("_setAPILogin got JWT token decoded as: " + JSON.stringify(jwset));
 				}
 				if (jwset) {
 					this.apiAuthToken = jsonresp[RESP_API_LOGIN_KEY_TOKEN];
@@ -449,7 +458,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 						}
 						this.jobAutoLogin = setInterval( this._setAPILogin.bind(this), this.apiAuthRefreshDelay, true, (err, ok) => {
 							if (err || !ok) {
-								this.log.debug("_setAPILogin failed to auto-refresh token, rebooting to a regular auth: " + err);
+								this._debug("_setAPILogin failed to auto-refresh token, rebooting to a regular auth: " + err);
 								clearInterval(this.jobAutoLogin);
 								this._setAPILogin(false, (err, ok) => {
 									if (err || !ok) {
@@ -479,7 +488,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			let requestheaders = {...this.apiHTTPHeaders};
 			requestheaders[HTTP_REQ_LOCAL_HEADER] = false;
 			requestheaders[HTTP_REQ_AUTH_HEADER] = this.apiAuthToken;
-			this.log.debug("_sendAPIRequest " + httpmethod + " to: " + url + ", HEADERS = " + JSON.stringify(requestheaders) + ", DATA = " + postdata);
+			this._debug("_sendAPIRequest " + httpmethod + " to: " + url + ", HEADERS = " + JSON.stringify(requestheaders) + ", DATA = " + postdata);
 			fetch(url, {method: httpmethod, body: postdata, timeout: HTTP_TIMEOUT, headers: requestheaders})
 				.then( (resp) => {
 					if (resp.ok) {
@@ -492,7 +501,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					}
 				})
 				.then( (jsonresp) => {
-					this.log.debug("_sendAPIRequest got a response with OK status");
+					this._debug("_sendAPIRequest got a response with OK status");
 					callback(null, jsonresp);
 				})
 				.catch( err => callback(err.message, null) );
@@ -519,7 +528,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								this.apiStoveDeviceProduct = device[RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT];
 								this.apiStoveDeviceSerial = device[RESP_API_DEVICESLIST_KEY_DEVICE_SERIAL];
 								this.apiStoveDeviceModel = device[RESP_API_DEVICESLIST_KEY_DEVICE_MODEL];
-								this.log.debug("_getAPIStoveDevicesList found device: " + JSON.stringify(device));
+								this._debug("_getAPIStoveDevicesList found device: " + JSON.stringify(device));
 							}
 						} else {
 							errmess = "_getAPIStoveDevicesList did not get expected result for a device from API: " + JSON.stringify(device);
@@ -627,9 +636,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					}
 					if (!brokein) {
 						this.apiStoveRegistersSet = true;
-						this.log.debug("_getAPIStoveRegistersMap apiStoveRegisters: " + Object.keys(this.apiStoveRegisters));
+						this._debug("_getAPIStoveRegistersMap apiStoveRegisters: " + Object.keys(this.apiStoveRegisters));
 						for (const offnamecouple of this.apiStoveOffsetsRegistersMap.entries()) {
-							this.log.debug(offnamecouple[0] + " => " + offnamecouple[1]);
+							this._debug(offnamecouple[0] + " => " + offnamecouple[1]);
 						}
 						callback(null, true);
 					} else {
@@ -664,13 +673,13 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	// Get a job result from API, or fail if max attempts reached
 	_getAPIJobResult(jobid, attempt, callback) {
 		if (this.apiStoveRegistersSet) {
-			this.log.debug("_getAPIJobResult " + jobid + " attempt " + attempt + " start");
+			this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " start");
 			if (attempt < API_DEVICEJOBSTATUS_MAX_RETRIES) {
 				const url = API_DEVICEJOBSTATUS + "/" + jobid;
 				this._sendAPIRequest(url, "GET", null, (err, json) => {
 					if (json || !err) {
 						if ((RESP_API_DEVICEJOBSTATUS_KEY_STATUS in json)) {
-							this.log.debug("_getAPIJobResult " + jobid + " attempt " + attempt + " result: " + json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS]);
+							this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " result: " + json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS]);
 							if (json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS] === RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_OK) {
 								if (RESP_API_DEVICEJOBSTATUS_KEY_RESULT in json) {
 									callback(null, json[RESP_API_DEVICEJOBSTATUS_KEY_RESULT]);
@@ -678,7 +687,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 									callback("_getAPIJobResult got job result without data: " + JSON.stringify(json), null);
 								}
 							} else {
-								this.log.debug("_getAPIJobResult " + jobid + " attempt " + attempt + " needs to schedule another attempt");
+								this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " needs to schedule another attempt");
 								setTimeout(this._getAPIJobResult.bind(this), API_DEVICEJOBSTATUS_DELAY_RETRY, jobid, attempt + 1, callback);
 							}
 						} else {
@@ -698,7 +707,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Wait for read registers data job results, and parse it when done
 	_waitForRegistersDataReadJobResult(jobid, callback) {
-		this.log.debug("_waitForRegistersDataReadJobResult called for job " + jobid);
+		this._debug("_waitForRegistersDataReadJobResult called for job " + jobid);
 		this._getAPIJobResult(jobid, 0, (err, res) => {
 			if (res || !err) {
 				if( (RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS in res) && (RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES in res)) {
@@ -708,7 +717,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 						if ((res[RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES].length > itemindex) && this.apiStoveOffsetsRegistersMap.has(offset)) {
 							for (const  registername of this.apiStoveOffsetsRegistersMap.get(offset)) {
 								this.apiStoveRegisters[registername][REGISTER_INTERNAL_KEY_VALUE] = res[RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES][itemindex];
-								this.log.debug("_waitForRegistersDataReadJobResult setting raw value: " + registername + "=" + this.apiStoveRegisters[registername][REGISTER_INTERNAL_KEY_VALUE]);
+								this._debug("_waitForRegistersDataReadJobResult setting raw value: " + registername + "=" + this.apiStoveRegisters[registername][REGISTER_INTERNAL_KEY_VALUE]);
 							}
 							itemindex++;
 						} else {
@@ -721,7 +730,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 							this.log.warn("Stove alarm seems to be set: " + STOVE_ALARM_REGISTER + " = " + alarmval);
 						}
 					}
-					this.log.debug("_waitForRegistersDataReadJobResult updated stove registers from API");
+					this._debug("_waitForRegistersDataReadJobResult updated stove registers from API");
 					callback(null, true);
 				} else {
 					this.log.error("_waitForRegistersDataReadJobResult did not get expected result from API: " + JSON.stringify(res));
@@ -734,14 +743,14 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Update registers data cache from API values
 	_updateAPIRegistersData(callback) {
-		this.log.debug("_updateAPIRegistersData called, apiStoveRegistersSet=" + this.apiStoveRegistersSet + ", apiPendingReadJob=" + this.apiPendingReadJob);
+		this._debug("_updateAPIRegistersData called, apiStoveRegistersSet=" + this.apiStoveRegistersSet + ", apiPendingReadJob=" + this.apiPendingReadJob);
 		if (this.apiStoveRegistersSet) {
 			// If an API read job is already pending, or cache did not expire, do nothing
 			if (this.apiPendingReadJob) {
-				this.log.debug("_updateAPIRegistersData will do nothing, a job is pending: " + this.apiPendingReadJob);
+				this._debug("_updateAPIRegistersData will do nothing, a job is pending: " + this.apiPendingReadJob);
 				callback(null, false);
 			} else if ((this.lastStoveRegistersUpdate + STOVE_REGISTERS_CACHE_KEEP) >= Date.now()) {
-				this.log.debug("_updateAPIRegistersData will do nothing, cache is up to date");
+				this._debug("_updateAPIRegistersData will do nothing, cache is up to date");
 				callback(null, false);
 			// Otherwise, schedule an API read job, then wait for it to complete to fill the cache
 			} else {
@@ -776,7 +785,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		if (this.apiStoveRegistersSet) {
 			if (registername in this.apiStoveRegisters) {
 				const register = this.apiStoveRegisters[registername];
-				this.log.debug("_getStoveRegister " + registername + ": " + JSON.stringify(register));
+				this._debug("_getStoveRegister " + registername + ": " + JSON.stringify(register));
 				callback(null, register);
 			} else {
 				callback("_getStoveRegister register name not in registers: " + registername, null);
@@ -832,7 +841,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					const calcmin = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MIN]);
 					const calcmax = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MAX]);
 					if ((calcmin !== null) || (calcmax !== null)) {
-						this.log.debug("_getStoveRegisterBoundaries " + registername + " => [" + calcmin + ", " + calcmax + "]");
+						this._debug("_getStoveRegisterBoundaries " + registername + " => [" + calcmin + ", " + calcmax + "]");
 						callback(null, [calcmin, calcmax]);
 					} else {
 						callback("_getStoveRegisterBoundaries could not calculate value from register for: " + registername, null);
@@ -849,7 +858,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			this._getStoveRegister(registername, (err, register) => {
 				const calcedval = this._calculateStoveValue(register, false, false, null);
 				if (calcedval !== null) {
-					this.log.debug("_getStoveRegisterValueFromCache " + registername + " => " + calcedval);
+					this._debug("_getStoveRegisterValueFromCache " + registername + " => " + calcedval);
 					callback(null, calcedval);
 				} else {
 					callback("_getStoveRegisterValueFromCache could not calculate value from register for: " + registername, null);
@@ -867,7 +876,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				if (value >= register[REGISTER_KEY_MIN] && value <= register[REGISTER_KEY_MAX]) {
 					const calcedval = this._calculateStoveValue(register, false, true, value);
 					if (calcedval) {
-						this.log.debug("_writeStoveRegister asked to write " + registername + "=" + value + " => " + register[REGISTER_KEY_OFFSET] + "=" + calcedval);
+						this._debug("_writeStoveRegister asked to write " + registername + "=" + value + " => " + register[REGISTER_KEY_OFFSET] + "=" + calcedval);
 						let regwritepostdata = {};
 						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_ID] = this.apiStoveDeviceID;
 						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_PRODUCT] = this.apiStoveDeviceProduct;
@@ -886,7 +895,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 												callback("_writeStoveRegister API job returned an error: " + res[RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE], null);
 											} else {
 												register[REGISTER_INTERNAL_KEY_VALUE] = calcedval;
-												this.log.debug("_writeStoveRegister wrote registers in API");
+												this._debug("_writeStoveRegister wrote registers in API");
 												callback(null, true);
 											}
 										} else {
@@ -932,10 +941,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					if ((value !== null) || !err) {
 						const active = this._calculateStoveStatus(value, false);
 						this.stoveService.updateCharacteristic(this.Characteristic.Active, active);
-						this.log.debug("_updateCharacteristicsValues Active: " + value + " => " + active + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues Active: " + value + " => " + active + ", (ERR: " + err + ")");
 						const status = this._calculateStoveStatus(value, true);
 						this.stoveService.updateCharacteristic(this.Characteristic.CurrentHeaterCoolerState, status);
-						this.log.debug("_updateCharacteristicsValues CurrentHeaterCoolerState: " + value + " => " + active + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues CurrentHeaterCoolerState: " + value + " => " + active + ", (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_STATE_REGISTER + ": " + err);
 					}
@@ -943,7 +952,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this._getStoveRegisterValueFromCache(STOVE_CURRENT_TEMP_REGISTER, false, (err, value) => {
 					if ((value !== null) || !err) {
 						this.stoveService.updateCharacteristic(this.Characteristic.CurrentTemperature, value);
-						this.log.debug("_updateCharacteristicsValues CurrentTemperature: " + value + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues CurrentTemperature: " + value + ", (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_TEMP_REGISTER + ": " + err);
 					}
@@ -951,7 +960,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this._getStoveRegisterValueFromCache(STOVE_SET_TEMP_REGISTER, false, (err, value) => {
 					if ((value !== null) || !err) {
 						this.stoveService.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, value);
-						this.log.debug("_updateCharacteristicsValues HeatingThresholdTemperature: " + value + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues HeatingThresholdTemperature: " + value + ", (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_SET_TEMP_REGISTER + ": " + err);
 					}
@@ -959,13 +968,13 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this._getStoveRegisterValueFromCache(STOVE_CURRENT_POWER_REGISTER, false, (err, value) => {
 					if ((value !== null) || !err) {
 						this.stoveService.updateCharacteristic(this.Characteristic.RotationSpeed, value);
-						this.log.debug("_updateCharacteristicsValues RotationSpeed: " + value + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues RotationSpeed: " + value + ", (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_POWER_REGISTER + ": " + err);
 					}
 				});
 			} else if (!ok && !err) {
-				this.log.debug("_updateCharacteristicsValues did nothing (cache OK or job pending)");
+				this._debug("_updateCharacteristicsValues did nothing (cache OK or job pending)");
 			} else {
 				this.log.error("_updateCharacteristicsValues failed: " + err);
 			}
@@ -992,7 +1001,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this._getStoveRegisterValueFromCache(registername, false, (err, value) => {
 			let appliedval = defaultvalue;
 			if (value === null) {
-				this.log.debug("_getterWrapper got null value, ERR: " + err);
+				this._debug("_getterWrapper got null value, ERR: " + err);
 			} else {
 				appliedval = value;
 			}
@@ -1064,10 +1073,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 							this.log.error(calcerr);
 						} else if (currentstate === state) {
 							calcerr = null;
-							this.log.debug("setStoveActive will not change state as stove already at target state: " + currentstate + " == " + state);
+							this._debug("setStoveActive will not change state as stove already at target state: " + currentstate + " == " + state);
 						} else if (targetvalue === currentvalue) {
 							calcerr = null;
-							this.log.debug("setStoveActive will not change state as stove register value already identical: " + targetvalue + " == " + currentvalue);
+							this._debug("setStoveActive will not change state as stove register value already identical: " + targetvalue + " == " + currentvalue);
 						} else if ( (dn - this.lastStovePowerChange) <= POWER_SWING_PROTECTION_DELAY ) {
 							calcerr = "setStoveActive stopped by power swing protection: last power change is too close in time (next power state change possible at " + new Date(this.lastStovePowerChange + POWER_SWING_PROTECTION_DELAY) + ")";
 							this.log.warn(calcerr);

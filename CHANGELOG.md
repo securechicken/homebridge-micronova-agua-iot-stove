@@ -12,8 +12,10 @@
 - Added: more testable stove brands
 
 ## [0.0.1-alpha.0] - 2021-02-25
-- Added: first public alpha and package.
+- Added: first public alpha and package
 
 ## [Unreleased]
+- Fixed: device information shown from HomeKit was left default
 - Fixed: inconsistant shown initial default state
-- Added: to comply with Homebridge verified guidelines, plugins will not load if conf empty or invalid.
+- Added: possible activation of debug messages at plugin config level
+- Added: to comply with Homebridge verified guidelines, plugins will not load if conf empty or invalid

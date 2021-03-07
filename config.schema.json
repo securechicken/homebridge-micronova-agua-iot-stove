@@ -61,6 +61,13 @@
 				"description": "Stove official App Password",
 				"type": "string",
 				"required": true
+			},
+			"debug": {
+				"title": "Debug",
+				"description": "Enable debug output messages in HomeBridge (regardless of HomeBridge debug settings)",
+				"type": "boolean",
+				"default": false,
+				"required": true
 			}
 		}
 	},
