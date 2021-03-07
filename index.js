@@ -185,7 +185,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.Service = this.api.hap.Service;
 		this.Characteristic = this.api.hap.Characteristic;
 
-		if (!( (this.config) && (this.config.brand) && (this.config.login) && (this.config.password) && (this.config.debug) )) {
+		if (!( (this.config) && (this.config.brand) && (this.config.login) && (this.config.password) )) {
 			this.log.error("Plugin configuration is not valid: every value must be set");
 			return;
 		}
@@ -838,13 +838,13 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	_getStoveRegisterBoundaries(registername, callback) {
 		this._getStoveRegister(registername, (err, register) => {
 			if (register || !err) {
-					const calcmin = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MIN]);
-					const calcmax = this._calculateStoveValue(register, false, false, register[REGISTER_KEY_MAX]);
-					if ((calcmin !== null) || (calcmax !== null)) {
-						this._debug("_getStoveRegisterBoundaries " + registername + " => [" + calcmin + ", " + calcmax + "]");
-						callback(null, [calcmin, calcmax]);
+					if ( (REGISTER_KEY_MIN in register) && (REGISTER_KEY_MAX in register) ) {
+						const bmin = register[REGISTER_KEY_MIN];
+						const bmax = register[REGISTER_KEY_MAX];
+						this._debug("_getStoveRegisterBoundaries " + registername + " => [" + bmin + ", " + bmax + "]");
+						callback(null, [bmin, bmax]);
 					} else {
-						callback("_getStoveRegisterBoundaries could not calculate value from register for: " + registername, null);
+						callback("_getStoveRegisterBoundaries could not get boundaries from register for: " + registername, null);
 					}
 			} else {
 				callback("_getStoveRegisterBoundaries failed: " + err, null);

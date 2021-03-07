@@ -15,6 +15,7 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
+- Fixed: incorrect boundaries values calculation (issue #1)
 - Fixed: device information shown from HomeKit was left default
 - Fixed: inconsistant shown initial default state
 - Added: possible activation of debug messages at plugin config level
