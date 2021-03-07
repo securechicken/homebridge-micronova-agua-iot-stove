@@ -9,8 +9,9 @@ This plugin implementation has been made possible in a reasonable (free and pers
 
 ## Supported stoves
 This plugin has been developed for personal use, in order to control a single Piazzetta stove.  
-Here is the list of stove brands for which models have been tested to be working:
+Here is the list of stove brands for which models have been tested to be working (at least partially):
 - Piazzetta
+- Jolly Mec
 
 The plugin should however be working with some/most of Micronova's Agua IOT WiFi controlled stoves.  
 If you tested the plugin with a model which is not listed as supported yet, but is working well, please open a feature request issue to report.  
