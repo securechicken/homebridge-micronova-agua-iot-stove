@@ -248,12 +248,13 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		const sname = this.config.name || ACCESSORY_PLUGIN_NAME;
 		this.stoveService = new this.Service.HeaterCooler(sname);
 		// Device infos
-		this.infoService = new this.Service.AccessoryInformation();
-		this.infoService
+		this.infoService = new this.Service.AccessoryInformation()
 			.setCharacteristic(this.Characteristic.Name, sname)
 			.setCharacteristic(this.Characteristic.Manufacturer, PLUGIN_DEVICE_MANUFACTURER)
-			.setCharacteristic(this.Characteristic.SoftwareRevision, PLUGIN_VERSION)
-			.setCharacteristic(this.Characteristic.FirmwareRevision, PLUGIN_NAME)
+			.setCharacteristic(this.Characteristic.Model, this.config.brand)
+			.setCharacteristic(this.Characteristic.SerialNumber, this.apiPhoneUUID)
+			.setCharacteristic(this.Characteristic.SoftwareRevision, PLUGIN_NAME)
+			.setCharacteristic(this.Characteristic.FirmwareRevision, PLUGIN_VERSION)
 			.setCharacteristic(this.Characteristic.HardwareRevision, PLUGIN_AUTHOR);
 
 		// Register app at start, then login, then get a stove device, and associated values
@@ -263,10 +264,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					if (tokok || !err) { 
 						this._getAPIStoveDevice( (err, okmap) => {
 							if (okmap || !err) {
-								// Set API provided device infos
-								this.infoService
-									.setCharacteristic(this.Characteristic.Model, this.config.brand + "(" + this.apiStoveDeviceModel + ")")
-									.setCharacteristic(this.Characteristic.SerialNumber, this.apiStoveDeviceSerial);
 								// Set API provided characteristics limits
 								this._getStoveRegisterBoundaries(STOVE_CURRENT_TEMP_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
