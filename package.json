@@ -31,6 +31,10 @@
 	],
 	"author": "@securechicken",
 	"license": "AGPL-3.0-only",
+	"funding": {
+		"type": "individual",
+		"url": "https://www.paypal.com/donate?business=EJLS4QWSCUVKA&item_name=Support+SecureChicken+developments"
+	},
 	"bugs": {
 		"url": "https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues"
 	},
