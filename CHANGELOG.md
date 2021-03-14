@@ -26,4 +26,5 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Added: more possible status to coope with some stoves (issue #3)
+- Added: more possible status to cope with some stoves (issue #3)
+- Changed: now reports user set power instead of stove real internal power level

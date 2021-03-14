@@ -173,7 +173,7 @@ const STOVE_POWER_STATE_SET_OFF_REGISTER = STOVE_POWER_STATE_INFO_REGISTER;
 const STOVE_STATE_REGISTER = "status_get";
 const STOVE_CURRENT_TEMP_REGISTER = "temp_air_get";
 const STOVE_SET_TEMP_REGISTER = "temp_air_set";
-const STOVE_CURRENT_POWER_REGISTER = "real_power_get";
+const STOVE_CURRENT_POWER_REGISTER = "power_set"; // real_power_get for applied power
 const STOVE_SET_POWER_REGISTER = "power_set";
 const STOVE_REGISTERS_CACHE_KEEP = 10000; // 10s in ms
 
