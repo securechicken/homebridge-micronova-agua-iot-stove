@@ -2,7 +2,7 @@
 	"pluginAlias": "HeaterCoolerMicronovaAguaIOTStove",
 	"pluginType": "accessory",
 	"singular": true,
-	"headerDisplay": "Homebridge plugin to manage a Micronova's Agua IOT WiFi module controlled stove",
+	"headerDisplay": "Homebridge plugin to manage stoves/heaters with Micronova's Agua IOT module and HTTP API",
 	"footerDisplay": null,
 	"schema": {
 		"type": "object",

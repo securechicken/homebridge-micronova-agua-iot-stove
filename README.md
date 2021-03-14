@@ -1,5 +1,5 @@
 # homebridge-micronova-agua-iot-stove
-[Homebridge](https://github.com/homebridge/homebridge/) plugin to manage a Micronova's Agua IOT WiFi controlled stove, from iOS/HomeKit.
+[Homebridge](https://github.com/homebridge/homebridge/) plugin to manage stoves/heaters with Micronova's Agua IOT module and HTTP API, from iOS/HomeKit.
 
 | :boom: BETA STATE         |
 |:---------------------------|
