@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "0.0.1-alpha.3";
+const PLUGIN_VERSION = "0.0.1-beta.1";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
@@ -76,7 +76,8 @@ const REGISTER_VALUE_STRING_VALPH = "{0}";
 
 // API related constants
 // Doc: http://<brand>.agua-iot.com:3001/api-docs/
-const HTTP_TIMEOUT = 5000; // 5s in ms, the web service is somehow laggy
+const HTTP_TIMEOUT = 7000; // 7s in ms, web API can be laggy
+const HTTP_RETRY_DELAY = 10000; // 10s in ms
 const HTTP_REQ_ACCEPT_HEADER = "Accept";
 const HTTP_REQ_CONTENT_HEADER = "Content-Type";
 const HTTP_REQ_ORIGIN_HEADER = "Origin";
@@ -258,6 +259,66 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			.setCharacteristic(this.Characteristic.HardwareRevision, PLUGIN_AUTHOR);
 
 		// Register app at start, then login, then get a stove device, and associated values
+		this._initPluginFromAPI();
+		
+		// Set characteristics properties boundaries and valid values
+		// Setting CurrentHeaterCoolerState and TargetHeaterCoolerState allows to
+		// lock device to heater mode only
+		this.stoveService.getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
+			.setProps({
+				minValue: this.Characteristic.CurrentHeaterCoolerState.INACTIVE,
+				maxValue: this.Characteristic.CurrentHeaterCoolerState.HEATING,
+				validValues: [this.Characteristic.CurrentHeaterCoolerState.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE, this.Characteristic.CurrentHeaterCoolerState.HEATING]
+			});
+		this.stoveService.getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
+			.setProps({
+				minValue: this.Characteristic.TargetHeaterCoolerState.HEAT,
+				maxValue: this.Characteristic.TargetHeaterCoolerState.HEAT,
+				validValues: [this.Characteristic.TargetHeaterCoolerState.HEAT]
+			});
+		this.stoveService.getCharacteristic(this.Characteristic.LockPhysicalControls)
+			.setProps({
+				minValue: this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
+				maxValue: this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
+				validValues: [this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED]
+			});
+		this.stoveService.getCharacteristic(this.Characteristic.SwingMode)
+			.setProps({
+				minValue: this.Characteristic.SwingMode.SWING_DISABLED,
+				maxValue: this.Characteristic.SwingMode.SWING_DISABLED,
+				validValues: [this.Characteristic.SwingMode.SWING_DISABLED]
+			});
+		this.stoveService.getCharacteristic(this.Characteristic.TemperatureDisplayUnits)
+			.setProps({
+				minValue: this.Characteristic.TemperatureDisplayUnits.CELSIUS,
+				maxValue: this.Characteristic.TemperatureDisplayUnits.CELSIUS,
+				validValues: [this.Characteristic.TemperatureDisplayUnits.CELSIUS]
+			});
+		// Forced initial arbitrary states
+		this.stoveService.setCharacteristic(this.Characteristic.Active, this.stoveCharDefaultActive);
+		this.stoveService.setCharacteristic(this.Characteristic.CurrentHeaterCoolerState, this.stoveCharDefaultState);
+		this.stoveService.setCharacteristic(this.Characteristic.TargetHeaterCoolerState, this.stoveCharDefaultState);
+		this.stoveService.setCharacteristic(this.Characteristic.TemperatureDisplayUnits, this.Characteristic.TemperatureDisplayUnits.CELSIUS);
+		this.stoveService.setCharacteristic(this.Characteristic.LockPhysicalControls, this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED);
+		this.stoveService.setCharacteristic(this.Characteristic.SwingMode, this.Characteristic.SwingMode.SWING_DISABLED);
+	}
+
+	// Mandatory services export method
+	getServices() {
+		return [this.infoService, this.stoveService];
+	}
+
+	// Debug logs output
+	_debug(message) {
+		if (this.config.debug) {
+			this.log.info("[DEBUG] " + message);
+		} else {
+			this.log.debug(message);
+		}
+	}
+
+	// Init plugin from API required data
+	_initPluginFromAPI() {
 		this._registerAPIApp( (err, appok) => {
 			if (appok || !err) {
 				this._setAPILogin(false, (err, tokok) => {
@@ -321,61 +382,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this.log.error("init could not register app with API: " + err);
 			}
 		});
-		
-		// Set characteristics properties boundaries and valid values
-		// Setting CurrentHeaterCoolerState and TargetHeaterCoolerState allows to
-		// lock device to heater mode only
-		this.stoveService.getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
-			.setProps({
-				minValue: this.Characteristic.CurrentHeaterCoolerState.INACTIVE,
-				maxValue: this.Characteristic.CurrentHeaterCoolerState.HEATING,
-				validValues: [this.Characteristic.CurrentHeaterCoolerState.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE, this.Characteristic.CurrentHeaterCoolerState.HEATING]
-			});
-		this.stoveService.getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
-			.setProps({
-				minValue: this.Characteristic.TargetHeaterCoolerState.HEAT,
-				maxValue: this.Characteristic.TargetHeaterCoolerState.HEAT,
-				validValues: [this.Characteristic.TargetHeaterCoolerState.HEAT]
-			});
-		this.stoveService.getCharacteristic(this.Characteristic.LockPhysicalControls)
-			.setProps({
-				minValue: this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
-				maxValue: this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
-				validValues: [this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED]
-			});
-		this.stoveService.getCharacteristic(this.Characteristic.SwingMode)
-			.setProps({
-				minValue: this.Characteristic.SwingMode.SWING_DISABLED,
-				maxValue: this.Characteristic.SwingMode.SWING_DISABLED,
-				validValues: [this.Characteristic.SwingMode.SWING_DISABLED]
-			});
-		this.stoveService.getCharacteristic(this.Characteristic.TemperatureDisplayUnits)
-			.setProps({
-				minValue: this.Characteristic.TemperatureDisplayUnits.CELSIUS,
-				maxValue: this.Characteristic.TemperatureDisplayUnits.CELSIUS,
-				validValues: [this.Characteristic.TemperatureDisplayUnits.CELSIUS]
-			});
-		// Forced initial arbitrary states
-		this.stoveService.setCharacteristic(this.Characteristic.Active, this.stoveCharDefaultActive);
-		this.stoveService.setCharacteristic(this.Characteristic.CurrentHeaterCoolerState, this.stoveCharDefaultState);
-		this.stoveService.setCharacteristic(this.Characteristic.TargetHeaterCoolerState, this.stoveCharDefaultState);
-		this.stoveService.setCharacteristic(this.Characteristic.TemperatureDisplayUnits, this.Characteristic.TemperatureDisplayUnits.CELSIUS);
-		this.stoveService.setCharacteristic(this.Characteristic.LockPhysicalControls, this.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED);
-		this.stoveService.setCharacteristic(this.Characteristic.SwingMode, this.Characteristic.SwingMode.SWING_DISABLED);
-	}
-
-	// Mandatory services export method
-	getServices() {
-		return [this.infoService, this.stoveService];
-	}
-
-	// Debug logs output
-	_debug(message) {
-		if (this.config.debug) {
-			this.log.info("[DEBUG] " + message);
-		} else {
-			this.log.debug(message);
-		}
 	}
 
 	// API app registering helper
@@ -399,7 +405,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				}
 			})
 			.catch( (err) => {
-				callback(err.message, null);
+				this.log.error("_registerAPIApp HTTP request failed. Retrying... Reason: " + err.message);
+				setTimeout(this._registerAPIApp.bind(this), HTTP_RETRY_DELAY, callback);
+				//callback(err.message, null);
 			});
 	}
 
@@ -477,7 +485,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			})
 			.catch( (err) => {
 				this.isAuth = false;
-				callback("_setAPILogin could not log-in with login and password in config: " + err.message, null);
+				this.log.error("_setAPILogin HTTP request failed. Retrying... Reason: " + err.message);
+				setTimeout(this._setAPILogin.bind(this), HTTP_RETRY_DELAY, refresh, callback);
+				//callback("_setAPILogin could not log-in with login and password in config: " + err.message, null);
 			});
 	}
 
@@ -504,7 +514,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					this._debug("_sendAPIRequest got a response with OK status");
 					callback(null, jsonresp);
 				})
-				.catch( err => callback(err.message, null) );
+				.catch( (err) => {
+					this.log.error("_sendAPIRequest HTTP request failed. Retrying... Reason: " + err.message);
+					setTimeout(this._sendAPIRequest.bind(this), HTTP_RETRY_DELAY, endpoint, httpmethod, postdata, callback);
+					//callback(err.message, null);
+				});
 		} else {
 			callback("_sendAPIRequest could not send API request: not logged-in...", null);
 		}
