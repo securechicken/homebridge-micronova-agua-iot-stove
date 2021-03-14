@@ -1,6 +1,10 @@
 # Changelog
 
-`/!\` This plugin is in ALPHA state, and should only be considered a possibly *dangerous* testing version. Things might not work as expected yet, or even put heaters in unwanted (yet reversible) states, please open [issues](https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues) to report bugs. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one.
+`/!\` This plugin is in BETA state, and should only be considered a testing version. Things might not work as expected, please open [issues](https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues) to report bugs. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one.
+
+## [0.0.1-beta.1] - 2021-03-14
+- Added: plugin now considered in BETA state
+- Added: better management of connectivity issues. The plugin now uses longer HTTP timeout delay, and retries indefinitely every 30s in case of network connection failure (DNS request error, timeout, etc.) for HTTP requests
 
 ## [0.0.1-alpha.3] - 2021-03-07
 - Fixed: incorrect boundaries values calculation (issue #1)
@@ -22,4 +26,3 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Added: better management of connectivity issues. The plugin now uses longer HTTP timeout delay, and retries indefinitely every 30s in case of network connection failure (DNS request error, timeout, etc.) for HTTP requests
