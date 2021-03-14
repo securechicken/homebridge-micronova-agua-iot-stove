@@ -26,3 +26,4 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
+- Added: more possible status to coope with some stoves (issue #3)

@@ -203,7 +203,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			[6, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // FINAL CLEANING
 			[7, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // STANDBY
 			[8, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ALARM
-			[9, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]] // ALARM MEMORY
+			[9, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ALARM MEMORY
+			[10, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // JOLLY MEC = ?
+			[11, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // JOLLY MEC = ? 
+			[12, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ?
 		]);
 
 		// Authentication and API root URL infos
@@ -942,7 +945,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			const index = (state) ? (1) : (0);
 			ret = this.stateMap.get(value)[index];
 		} else {
-			this.log.error("_calculateStoveStatus (" + state + ") has no map key for value: " + value);
+			this.log.error("_calculateStoveStatus (" + state + ") doesn't know which state is value: " + value);
 		}
 		return ret;
 	}
