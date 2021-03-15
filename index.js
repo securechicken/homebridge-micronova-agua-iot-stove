@@ -193,6 +193,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this._debug("init config: " + JSON.stringify(this.config));
 
 		// Mappings between HomeKit states and API returned one.
+		this.defaultStatePair = [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE];
 		this.stateMap = new Map([
 			[0, [this.Characteristic.Active.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.INACTIVE]], // OFF, OFF E
 			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // AWAITING FLAME (+ ERROR 32)
@@ -200,13 +201,13 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			[3, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LIGHTING
 			[4, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // WORRKING
 			[5, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // CLEANING BRASERO
-			[6, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // FINAL CLEANING
-			[7, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // STANDBY
-			[8, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ALARM
-			[9, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ALARM MEMORY
-			[10, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // JOLLY MEC = ?
-			[11, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // JOLLY MEC = ? 
-			[12, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE]], // ?
+			[6, this.defaultStatePair], // FINAL CLEANING
+			[7, this.defaultStatePair], // STANDBY
+			[8, this.defaultStatePair], // ALARM
+			[9, this.defaultStatePair], // ALARM MEMORY
+			[10, this.defaultStatePair], // JOLLY MEC = ?
+			[11, this.defaultStatePair], // JOLLY MEC = ? 
+			[12, this.defaultStatePair], // ?
 		]);
 
 		// Authentication and API root URL infos
@@ -940,14 +941,14 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Determine stove status based on register data
 	_calculateStoveStatus(value, state) {
-		let ret = null;
+		const index = (state) ? (1) : (0);
+		let statePair = this.defaultStatePair;
 		if (this.stateMap.has(value)) {
-			const index = (state) ? (1) : (0);
-			ret = this.stateMap.get(value)[index];
+			statePair = this.stateMap.get(value);
 		} else {
 			this.log.error("_calculateStoveStatus (" + state + ") doesn't know which state is value: " + value);
 		}
-		return ret;
+		return statePair[index];
 	}
 
 	// Update Homebridge device characteristics values
