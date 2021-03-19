@@ -2,6 +2,9 @@
 
 `/!\` This plugin is in BETA state, and should only be considered a testing version. Things might not work as expected, please open [issues](https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues) to report bugs. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one.
 
+## [0.0.1-beta.3] - 2021-03-18
+- Fixed: due to recent changes in the way Piazzetta uses Micronova Agua IOT, it is not possible anymore to login to Agua IOT API with a Piazzetta account. This has been fixed by processing the login at Piazzetta frontends, before going on with Agua IOT API. Thanks to the developer of Agua IOT API (Luca) for his help understanding these specific changes.
+
 ## [0.0.1-beta.2] - 2021-03-15
 - Added: more possible status to cope with some stoves (issue #3)
 - Changed: now reports user set power instead of stove real internal power level (issue #4)

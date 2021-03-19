@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "0.0.1-beta.2";
+const PLUGIN_VERSION = "0.0.1-beta.3";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
@@ -20,34 +20,34 @@ module.exports = (api) => {
 
 // Mapping of supported brands and associated settings.
 const MAP_SUPPORTED_BRANDS = new Map([
-	["piazzetta", ["458632", "https://piazzetta.agua-iot.com"]],
-	["evastampaggi", ["635987", "https://evastampaggi.agua-iot.com"]],
-	["nordicfire", ["132678", "https://nordicfire.agua-iot.com"]],
-	["alphaplam", ["862148", "https://alfaplam.agua-iot.com"]],
-	["elfire", ["402762", "https://elfire.agua-iot.com"]],
-	["karmekone", ["403873", "https://karmekone.agua-iot.com"]],
-	["mcz1", ["354924", "https://remote.mcz.it"]],
-	["mcz2", ["746318", "https://remote.mcz.it"]],
-	["mcz3", ["354925", "https://remote.mcz.it"]],
-	["lorflam", ["121567", "https://lorflam.agua-iot.com"]],
-	["laminox", ["352678", "https://laminox.agua-iot.com"]],
-	["boreal", ["173118", "https://boreal.agua-iot.com"]],
-	["bronpi", ["164873", "https://bronpi.agua-iot.com"]],
-	["solartecnik", ["326495", "https://solartecnik.agua-iot.com"]],
-	["jollymec", ["732584", "https://jollymec.agua-iot.com"]],
-	["globefire", ["634876", "https://globefire.agua-iot.com"]],
-	["timsistem", ["046629", "https://timsistem.agua-iot.com"]],
-	["stufepelletitalia", ["015142", "https://stufepelletitalia.agua-iot.com"]],
-	["mycorisit", ["101427", "https://mycorisit.agua-iot.com"]],
-	["fonteflame", ["848324", "https://fonteflame.agua-iot.com"]],
-	["klover", ["143789", "https://klover.agua-iot.com"]],
-	["amg", ["859435", "https://amg.agua-iot.com"]],
-	["lineavz", ["521228", "https://lineavz.agua-iot.com"]],
-	["thermoflux", ["391278", "https://thermoflux.agua-iot.com"]],
-	["cola", ["475219", "https://cola.agua-iot.com"]],
-	["moretti", ["624813", "https://moretti.agua-iot.com"]],
-	["fontanaforni", ["505912", "https://fontanaforni.agua-iot.com"]],
-	["nina", ["999999", "https://micronova.agua-iot.com"]]
+	["piazzetta", ["458632", "https://piazzetta.agua-iot.com/", "https://piazzetta.iot.web2app.it/api/bridge/endpoint/"]],
+	["evastampaggi", ["635987", "https://evastampaggi.agua-iot.com/"]],
+	["nordicfire", ["132678", "https://nordicfire.agua-iot.com/"]],
+	["alphaplam", ["862148", "https://alfaplam.agua-iot.com/"]],
+	["elfire", ["402762", "https://elfire.agua-iot.com/"]],
+	["karmekone", ["403873", "https://karmekone.agua-iot.com/"]],
+	["mcz1", ["354924", "https://remote.mcz.it/"]],
+	["mcz2", ["746318", "https://remote.mcz.it/"]],
+	["mcz3", ["354925", "https://remote.mcz.it/"]],
+	["lorflam", ["121567", "https://lorflam.agua-iot.com/"]],
+	["laminox", ["352678", "https://laminox.agua-iot.com/"]],
+	["boreal", ["173118", "https://boreal.agua-iot.com/"]],
+	["bronpi", ["164873", "https://bronpi.agua-iot.com/"]],
+	["solartecnik", ["326495", "https://solartecnik.agua-iot.com/"]],
+	["jollymec", ["732584", "https://jollymec.agua-iot.com/"]],
+	["globefire", ["634876", "https://globefire.agua-iot.com/"]],
+	["timsistem", ["046629", "https://timsistem.agua-iot.com/"]],
+	["stufepelletitalia", ["015142", "https://stufepelletitalia.agua-iot.com/"]],
+	["mycorisit", ["101427", "https://mycorisit.agua-iot.com/"]],
+	["fonteflame", ["848324", "https://fonteflame.agua-iot.com/"]],
+	["klover", ["143789", "https://klover.agua-iot.com/"]],
+	["amg", ["859435", "https://amg.agua-iot.com/"]],
+	["lineavz", ["521228", "https://lineavz.agua-iot.com/"]],
+	["thermoflux", ["391278", "https://thermoflux.agua-iot.com/"]],
+	["cola", ["475219", "https://cola.agua-iot.com/"]],
+	["moretti", ["624813", "https://moretti.agua-iot.com/"]],
+	["fontanaforni", ["505912", "https://fontanaforni.agua-iot.com/"]],
+	["nina", ["999999", "https://micronova.agua-iot.com/"]]
 ]);
 
 // Stove status registers (data) constants
@@ -86,12 +86,16 @@ const HTTP_REQ_CUSTOMER_CODE_HEADER = "customer_code";
 const HTTP_REQ_UA_HEADER = "User-Agent";
 const HTTP_REQ_LOCAL_HEADER = "local";
 const HTTP_REQ_AUTH_HEADER = "Authorization";
+const HTTP_REQ_PIAZZETTA_URL = "url";
+const HTTP_REQ_PIAZZETTA_APP_VERSION = "applicationversion";
+const HTTP_REQ_PIAZZETTA_APP_VERSION_VALUE = "1.6.0";
 const HTTP_ACCEPT = "application/json, text/javascript, */*; q=0.01";
 const HTTP_CONTENT = "application/json";
 const HTTP_ORIGIN = "file://";
 const HTTP_ID_BRAND = "1";
 const HTTP_UA = "homebridge-micronova-agua-iot-stove/" + PLUGIN_VERSION;
-const API_APPSIGNUP = "/appSignup";
+const API_ALIENS = ["piazzetta"];
+const API_APPSIGNUP = "appSignup";
 const POST_API_APPSIGNUP_KEY_TYPE = "phone_type";
 const POST_API_APPSIGNUP_KEY_ID = "phone_id";
 const POST_API_APPSIGNUP_KEY_VERSION = "phone_version";
@@ -102,27 +106,27 @@ const POST_API_APPSIGNUP_KEY_PUSHACTIVE = "push_notification_active";
 const POST_API_APPSIGNUP_VALUE_TYPE = "Android";
 const POST_API_APPSIGNUP_VALUE_LANG = "en";
 const POST_API_APPSIGNUP_VALUE_PUSHACTIVE = false;
-const API_LOGIN = "/userLogin";
+const API_LOGIN = "userLogin";
 const POST_API_LOGIN_KEY_LOGIN = "email";
 const POST_API_LOGIN_KEY_PASSWORD = "password";
 const RESP_API_LOGIN_KEY_TOKEN = "token";
 const RESP_API_LOGIN_KEY_REFRESHTOKEN = "refresh_token";
 const RESP_API_LOGIN_TOKEN_KEY_EXPIRY = "exp";
-const API_REFRESHTOKEN = "/refreshToken";
+const API_REFRESHTOKEN = "refreshToken";
 const POST_API_REFRESHTOKEN_KEY_REFRESHTOKEN = RESP_API_LOGIN_KEY_REFRESHTOKEN;
-const API_DEVICESLIST = "/deviceList";
+const API_DEVICESLIST = "deviceList";
 const RESP_API_DEVICESLIST_KEY_DEVICES = "device";
 const RESP_API_DEVICESLIST_KEY_DEVICE_ID = "id_device";
 const RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT = "id_product";
 const RESP_API_DEVICESLIST_KEY_DEVICE_SERIAL = "product_serial";
 const RESP_API_DEVICESLIST_KEY_DEVICE_NAME = "name";
 const RESP_API_DEVICESLIST_KEY_DEVICE_MODEL = "name_product";
-const API_DEVICEINFO = "/deviceGetInfo";
+const API_DEVICEINFO = "deviceGetInfo";
 const POST_API_DEVICEINFO_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
 const POST_API_DEVICEINFO_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
 const RESP_API_DEVICEINFO_KEY_INFO = "device_info";
 const RESP_API_DEVICEINFO_KEY_REGISTERSMAP_ID = "id_registers_map";
-const API_DEVICEREGISTERSMAP = "/deviceGetRegistersMap";
+const API_DEVICEREGISTERSMAP = "deviceGetRegistersMap";
 const POST_API_DEVICEREGISTERSMAP_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
 const POST_API_DEVICEREGISTERSMAP_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
 const POST_API_DEVICEREGISTERSMAP_KEY_LAST_UPDATE = "last_update";
@@ -131,13 +135,13 @@ const RESP_API_DEVICEREGISTERSMAP_KEY_L2 = "registers_map";
 const RESP_API_DEVICEREGISTERSMAP_KEY_ID = "id";
 const RESP_API_DEVICEREGISTERSMAP_KEY_REGISTERS = "registers";
 const RESP_API_DEVICEREGISTERSMAP_REGISTER_KEYS = [REGISTER_KEY_TYPE, REGISTER_KEY_OFFSET, REGISTER_KEY_FORMULA, REGISTER_KEY_FORMULAREV, REGISTER_KEY_FORMAT, REGISTER_KEY_MIN, REGISTER_KEY_MAX, REGISTER_KEY_MASK];
-const API_DEVICEREADBUFFER = "/deviceGetBufferReading";
+const API_DEVICEREADBUFFER = "deviceGetBufferReading";
 const POST_API_DEVICEREADBUFFER_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
 const POST_API_DEVICEREADBUFFER_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
 const POST_API_DEVICEREADBUFFER_KEY_BUFFER = "BufferId";
 const POST_API_DEVICEREADBUFFER_VALUE_BUFFER = 1;
 const RESP_API_DEVICEREADBUFFER_KEY_JOBID = "idRequest";
-const API_DEVICEWRITEBUFFER = "/deviceRequestWriting";
+const API_DEVICEWRITEBUFFER = "deviceRequestWriting";
 const POST_API_DEVICEWRITEBUFFER_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
 const POST_API_DEVICEWRITEBUFFER_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
 const POST_API_DEVICEWRITEBUFFER_KEY_PROTO = "Protocol";
@@ -150,7 +154,7 @@ const POST_API_DEVICEWRITEBUFFER_VALUE_PROTO = "RWMSmaster";
 const POST_API_DEVICEWRITEBUFFER_VALUE_BITDATA = [8];
 const POST_API_DEVICEWRITEBUFFER_VALUE_ENDIANESS = ["L"];
 const RESP_API_DEVICEWRITEBUFFER_KEY_JOBID = RESP_API_DEVICEREADBUFFER_KEY_JOBID;
-const API_DEVICEJOBSTATUS = "/deviceJobStatus";
+const API_DEVICEJOBSTATUS = "deviceJobStatus";
 const API_DEVICEJOBSTATUS_MAX_RETRIES = 10;
 const API_DEVICEJOBSTATUS_DELAY_RETRY = 700; // 700 ms
 const RESP_API_DEVICEJOBSTATUS_KEY_STATUS = "jobAnswerStatus";
@@ -425,7 +429,15 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.isAuth = false;
 		let url = this.apiRoot;
 		if (!refresh) {
-			url += API_LOGIN;
+			// Specific case for Piazzetta
+			// The user login has to be done at Piazzetta frontends mobile app server
+			// with additional headers, but the response is a standard JWT token then and
+			// can be used with Agua IOT API as before.
+			if (API_ALIENS.includes(this.config.brand)) {
+				url = MAP_SUPPORTED_BRANDS.get(this.config.brand)[2];
+			} else {
+				url += API_LOGIN;
+			}
 		} else {
 			url += API_REFRESHTOKEN;
 		}
@@ -433,6 +445,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		if (!refresh) {
 			loginheaders[HTTP_REQ_LOCAL_HEADER] = true;
 			loginheaders[HTTP_REQ_AUTH_HEADER] = this.apiAppUUID;
+			// Specific case for Piazzetta
+			if (API_ALIENS.includes(this.config.brand)) {
+				loginheaders[HTTP_REQ_PIAZZETTA_URL] = API_LOGIN;
+				loginheaders[HTTP_REQ_PIAZZETTA_APP_VERSION] = HTTP_REQ_PIAZZETTA_APP_VERSION_VALUE;
+			}
 		}
 		let postdata = {};
 		if (!refresh) {
