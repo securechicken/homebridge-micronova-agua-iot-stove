@@ -33,3 +33,4 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
+- Changed: raised registers update job wait delay and number of retry attempt
