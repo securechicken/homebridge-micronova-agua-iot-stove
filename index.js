@@ -194,7 +194,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			this.log.error("Plugin configuration is not valid: every value must be set");
 			return;
 		}
-		this._debug("init config: " + JSON.stringify(this.config));
+		this._debug("init config for " + this.config.brand + " brand with login: " + this.config.login);
 
 		// Mappings between HomeKit states and API returned one.
 		this.defaultStatePair = [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE];
@@ -519,7 +519,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			let requestheaders = {...this.apiHTTPHeaders};
 			requestheaders[HTTP_REQ_LOCAL_HEADER] = false;
 			requestheaders[HTTP_REQ_AUTH_HEADER] = this.apiAuthToken;
-			this._debug("_sendAPIRequest " + httpmethod + " to: " + url + ", HEADERS = " + JSON.stringify(requestheaders) + ", DATA = " + postdata);
+			this._debug("_sendAPIRequest " + httpmethod + " to: " + url + ", DATA = " + postdata);
 			fetch(url, {method: httpmethod, body: postdata, timeout: HTTP_TIMEOUT, headers: requestheaders})
 				.then( (resp) => {
 					if (resp.ok) {

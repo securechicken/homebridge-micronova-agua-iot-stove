@@ -33,4 +33,5 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Changed: raised registers update job wait delay and number of retry attempt
+- Changed: raised registers update job wait delay and number of retry attempts to avoid failing reads even when API is slow
+- Changed: removed users secrets (password, authorization) from debug messages in Homebridge to avoid issues reports with secrets in it 
