@@ -163,6 +163,7 @@ const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS = POST_API_DEVICEWRITEBUFFER_KEY
 const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES = POST_API_DEVICEWRITEBUFFER_KEY_VALUES;
 const RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE = "NackErrCode";
 const RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_OK = "completed";
+const RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_NTD = "terminated";
 const DATE_NEVER = "1970-01-01T00:00:00.000Z";
 
 // Module stove management constants
@@ -721,6 +722,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								} else {
 									callback("_getAPIJobResult got job result without data: " + JSON.stringify(json), null);
 								}
+							} else if (json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS] === RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_NTD) {
+								this._debug("_getAPIJobResult " + jobid + " finished successfully without returning data");
+								callback(null, null);
 							} else {
 								this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " needs to schedule another attempt");
 								setTimeout(this._getAPIJobResult.bind(this), API_DEVICEJOBSTATUS_DELAY_RETRY, jobid, attempt + 1, callback);
@@ -744,7 +748,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	_waitForRegistersDataReadJobResult(jobid, callback) {
 		this._debug("_waitForRegistersDataReadJobResult called for job " + jobid);
 		this._getAPIJobResult(jobid, 0, (err, res) => {
-			if (res || !err) {
+			if ((res === null) && (err === null)) {
+				this._debug("_waitForRegistersDataReadJobResult got nothing to update");
+				callback(null, false);
+			} else if (res || !err) {
 				if( (RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS in res) && (RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES in res)) {
 					this.lastStoveRegistersUpdate = Date.now();
 					let itemindex = 0;
@@ -1008,7 +1015,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_POWER_REGISTER + ": " + err);
 					}
 				});
-			} else if (!ok && !err) {
+			} else if ((ok === false) && (err === null)) {
 				this._debug("_updateCharacteristicsValues did nothing (cache OK or job pending)");
 			} else {
 				this.log.error("_updateCharacteristicsValues failed: " + err);
