@@ -757,9 +757,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					let itemindex = 0;
 					for (const offset of res[RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS]) {
 						if ((res[RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES].length > itemindex) && this.apiStoveOffsetsRegistersMap.has(offset)) {
-							for (const  registername of this.apiStoveOffsetsRegistersMap.get(offset)) {
+							for (const registername of this.apiStoveOffsetsRegistersMap.get(offset)) {
 								this.apiStoveRegisters[registername][REGISTER_INTERNAL_KEY_VALUE] = res[RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES][itemindex];
-								this._debug("_waitForRegistersDataReadJobResult setting raw value: " + registername + "=" + this.apiStoveRegisters[registername][REGISTER_INTERNAL_KEY_VALUE]);
+								this._debug("_waitForRegistersDataReadJobResult setting raw value: " + registername + "(" + offset + ")=" + this.apiStoveRegisters[registername][REGISTER_INTERNAL_KEY_VALUE]);
 							}
 							itemindex++;
 						} else {

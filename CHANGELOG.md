@@ -33,6 +33,7 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Fixed: some API job response statuses were not correctly read as a successful response
+- Fixed: some API job responses were not correctly read as a successful response
 - Changed: raised registers update job wait delay and number of retry attempts to avoid failing reads even when API is slow
 - Changed: removed users secrets (password, authorization) from debug messages in Homebridge to avoid issues reports with secrets in it
+- Changed: added more debug log messages to registers data update operations from API
