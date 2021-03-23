@@ -13,16 +13,16 @@ Here is the list of stove brands for which models have been tested to be working
 - Piazzetta
 - Jolly Mec
 
-The plugin should however be working with some/most of Micronova's Agua IOT WiFi controlled stoves. If you tested the plugin with a model which is not listed as supported yet, but is working well, please open a feature request issue to report. If you want to test the plugin with a model which is not available but working with [py-agua-iot](https://github.com/fredericvl/py-agua-iot), feel free to open a feature request issue.  
+The plugin should be working with most of Micronova's Agua IOT WiFi controlled stoves. If you tested the plugin with a model which is not listed as supported yet, but is working well, please open a feature request issue to report. If you want to test the plugin with a model which is not available but working with [py-agua-iot](https://github.com/fredericvl/py-agua-iot), feel free to open a feature request issue.  
 
 ## Intended capabilities scope
 The plugin is aimed at providing such functionalities:
 - Setting stove power ON/OFF,
-- Setting stove main combined power/ventilation level from the lower to the highest available managed levels,
+- Setting stove combined power/ventilation level, from the lowest to the highest available managed levels,
 - Setting stove target heating temperature value in °C,
 - Getting stove power, current air temperature and combined power/ventilation level.
 
-Any other function setting (special modes, auto/eco logic with temperature offsets, etc.) or value reading is not covered by the plugin, and will probably never be, due to the highly specific nature of implementation for each stove brand/model. Feel free to open a feature request issue if you however feel a function that is available for all stoves/brands should be implemented; or to clone this repository to develop a brand/model-specific plugin.
+Any other function (special modes, auto/eco logic with temperature offsets, etc.) or value reading are not covered by the plugin, and will probably never be, due to the highly specific nature of implementation for each stove brand/model. Feel free to open a feature request issue if you feel a function that is available for all stoves/brands should be implemented; or to clone this repository to develop a brand/model-specific plugin.
 
 ## Limitations
 The plugin runs as an Homebridge "Heater Cooler" device type, as it is the only fit device type from Homebridge available interfaces. Specific tricks have been deployed to expose it as a heating only device. The plugin allows for powering ON/OFF, setting target temperature, and flame/flow power. The plugin is only supporting one unique stove (the one of the same name than you will give in this plugin config, and that you previously set up in official mobile app).
@@ -37,7 +37,7 @@ Some status refreshes might not be honored as quickly as HomeKit or Homebridge w
 - Homebridge is by design limiting responsiveness, as it acts as an additional device between HomeKit and real devices,
 - if you encounter this with other devices, this might be a plugin slowing down the whole Homebridge instance, as Homebridge is only as fast as the slowest plugin. I advise to set plugins that work by requesting Web service as [child bridges](https://github.com/homebridge/homebridge/wiki/Child-Bridges). See this [Homebridge page](https://github.com/homebridge/homebridge/wiki/Characteristic-Warnings) to troubleshoot,
 - the more devices and plugins you have, the more Homebridge will take time to update devices status, the more HomeKit will have to wait. If you use several plugins and/or lots of accessories, consider setting [child bridges](https://github.com/homebridge/homebridge/wiki/Child-Bridges),
-- the Micronova Agua IOT API, which this plugin relies on, is sometimes (but rarely) unresponsive or down. As so, some requests will fail or take time anyway (just as they would in official mobile app).
+- this plugin relies on the Micronova Agua IOT HTTP API to work. This last is sometimes (but rarely) unresponsive or down. As so, some requests will fail or take time anyway (just as they would in official mobile app).
 
 None of known limitations are preventing the plugin to integrate your home automation with HomeKit, and to be able to support most simple scenarios, the main one being remotely starting/stopping your stove based on conditions or manually.
 
@@ -63,4 +63,4 @@ The result is saved in Homebridge config and looks like this, but should not to 
 ## Association
 As the plugin is an accessory one, once plugin configuration is done and Homebridge restarted, the stove should appear in HomeKit without any further setup.  
 
-If you set this plugin as a Setting this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges), the child bridge will have to be associated to HomeKit before the stove can appear.
+If you set this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges), the child bridge will have to be associated to HomeKit before the stove appears.
