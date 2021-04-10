@@ -1,9 +1,7 @@
 # homebridge-micronova-agua-iot-stove
 [Homebridge](https://github.com/homebridge/homebridge/) plugin to manage stoves/heaters with Micronova's Agua IOT module and HTTP API, from iOS/HomeKit.
 
-| :boom: BETA STATE         |
-|:---------------------------|
-| This plugin is in BETA state, and should only be considered a testing version. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one. Things might not work as expected yet, please open [issues](https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues) to report bugs. |
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 This plugin implementation has been made possible in a reasonable (free and personal) time, thanks to a previous [stove plugin](https://github.com/securechicken/homebridge-piazzetta-stove-simple) similar development, and an existing open-source [Micronova Agua IOT implementation](https://github.com/fredericvl/py-agua-iot) by @fredericvl (thanks a lot to him).
 

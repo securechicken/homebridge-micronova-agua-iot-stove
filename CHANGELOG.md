@@ -2,6 +2,14 @@
 
 `/!\` This plugin is in BETA state, and should only be considered a testing version. Things might not work as expected, please open [issues](https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues) to report bugs. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one.
 
+## [1.0.0] - 2021-04-10
+- Fixed: some API job responses were not correctly read as a successful response
+- Changed: raised registers update job wait delay and number of retry attempts to avoid failing reads even when API is slow
+- Changed: removed users secrets (password, authorization) from debug messages in Homebridge to avoid issues reports with secrets in it
+- Changed: added more debug log messages to registers data update operations from API
+- Changed: remove beta status after more than 20 days without issues report filled
+- Added: is now a "Verified" Homebridge plugin
+
 ## [0.0.1-beta.3] - 2021-03-18
 - Fixed: due to recent changes in the way Piazzetta uses Micronova Agua IOT, it is not possible anymore to login to Agua IOT API with a Piazzetta account. This has been fixed by processing the login at Piazzetta frontends, before going on with Agua IOT API. Thanks to the developer of Agua IOT API (Luca) for his help understanding these specific changes.
 
@@ -33,7 +41,3 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Fixed: some API job responses were not correctly read as a successful response
-- Changed: raised registers update job wait delay and number of retry attempts to avoid failing reads even when API is slow
-- Changed: removed users secrets (password, authorization) from debug messages in Homebridge to avoid issues reports with secrets in it
-- Changed: added more debug log messages to registers data update operations from API
