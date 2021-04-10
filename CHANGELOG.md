@@ -1,7 +1,5 @@
 # Changelog
 
-`/!\` This plugin is in BETA state, and should only be considered a testing version. Things might not work as expected, please open [issues](https://github.com/securechicken/homebridge-micronova-agua-iot-stove/issues) to report bugs. You should setup this plugin as a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) in order to safeguard others plugins from an issue with this one.
-
 ## [1.0.0] - 2021-04-10
 - Fixed: some API job responses were not correctly read as a successful response
 - Changed: raised registers update job wait delay and number of retry attempts to avoid failing reads even when API is slow
