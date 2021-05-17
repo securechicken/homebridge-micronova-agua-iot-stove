@@ -40,3 +40,4 @@
 
 ## [Unreleased]
 - Fixed: login refresh tried forever in case of failure, instead of rebooting to regular login
+- Changed: parse less (unused) device data, possible fix for plugin not finding stove name from API (#5)

@@ -118,9 +118,7 @@ const API_DEVICESLIST = "deviceList";
 const RESP_API_DEVICESLIST_KEY_DEVICES = "device";
 const RESP_API_DEVICESLIST_KEY_DEVICE_ID = "id_device";
 const RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT = "id_product";
-const RESP_API_DEVICESLIST_KEY_DEVICE_SERIAL = "product_serial";
 const RESP_API_DEVICESLIST_KEY_DEVICE_NAME = "name";
-const RESP_API_DEVICESLIST_KEY_DEVICE_MODEL = "name_product";
 const API_DEVICEINFO = "deviceGetInfo";
 const POST_API_DEVICEINFO_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
 const POST_API_DEVICEINFO_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
@@ -235,8 +233,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		// Stove device
 		this.apiStoveDeviceID = null;
 		this.apiStoveDeviceProduct = null;
-		this.apiStoveDeviceModel = null;
-		this.apiStoveDeviceSerial = null;
 		// Stove registers and associated data
 		this.apiStoveRegisters = null; // { registername: {register_key: value, ...}, ...}
 		this.apiStoveOffsetsRegistersMap = new Map(); // { offset: [registername, ...], ...}
@@ -559,17 +555,15 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					let founddev = null;
 					let errmess = null;
 					for (const device of json[RESP_API_DEVICESLIST_KEY_DEVICES]) {
+						this._debug("_getAPIStoveDevicesList checking device from API: " + JSON.stringify(device));
 						if ((RESP_API_DEVICESLIST_KEY_DEVICE_ID in device) && (RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT in device) &&
-							(RESP_API_DEVICESLIST_KEY_DEVICE_SERIAL in device) && (RESP_API_DEVICESLIST_KEY_DEVICE_MODEL in device) &&
 							(RESP_API_DEVICESLIST_KEY_DEVICE_NAME in device)) {
 							const devicename = device[RESP_API_DEVICESLIST_KEY_DEVICE_NAME];
 							if (devicename === this.config.name) {
 								founddev = true;
 								this.apiStoveDeviceID = device[RESP_API_DEVICESLIST_KEY_DEVICE_ID];
 								this.apiStoveDeviceProduct = device[RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT];
-								this.apiStoveDeviceSerial = device[RESP_API_DEVICESLIST_KEY_DEVICE_SERIAL];
-								this.apiStoveDeviceModel = device[RESP_API_DEVICESLIST_KEY_DEVICE_MODEL];
-								this._debug("_getAPIStoveDevicesList found device: " + JSON.stringify(device));
+								this._debug("_getAPIStoveDevicesList found config device: " + devicename);
 							}
 						} else {
 							errmess = "_getAPIStoveDevicesList did not get expected result for a device from API: " + JSON.stringify(device);
