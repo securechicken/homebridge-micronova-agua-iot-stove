@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "1.0.0";
+const PLUGIN_VERSION = "1.0.1";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
@@ -464,7 +464,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				if (resp.ok) {
 					return resp.json();
 				} else {
-					this.authToken = null;
 					throw new Error("_setAPILogin authentication rejected by API, got status: " + resp.status);
 				}
 			})
@@ -507,9 +506,15 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			})
 			.catch( (err) => {
 				this.isAuth = false;
-				this.log.error("_setAPILogin HTTP request failed. Retrying... Reason: " + err.message);
-				setTimeout(this._setAPILogin.bind(this), HTTP_RETRY_DELAY, refresh, callback);
-				//callback("_setAPILogin could not log-in with login and password in config: " + err.message, null);
+				this.apiAuthToken = null;
+				this.apiAuthRefreshToken = null;
+				// Try forever on regular login
+				if( !refresh ) {
+					this.log.error("_setAPILogin HTTP request failed. Retrying... Reason: " + err.message);
+					setTimeout(this._setAPILogin.bind(this), HTTP_RETRY_DELAY, false, callback);
+				} else {
+					callback(err.message, null);
+				}
 			});
 	}
 

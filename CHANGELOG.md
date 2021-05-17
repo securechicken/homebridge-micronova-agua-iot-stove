@@ -39,3 +39,4 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
+- Fixed: login refresh tried forever in case of failure, instead of rebooting to regular login
