@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2021-05-18
+- Fixed: login refresh tried forever in case of failure, instead of rebooting to regular login
+- Changed: parse less (unused) device data, possible fix for plugin not finding stove name from API (#5)
+
 ## [1.0.0] - 2021-04-10
 - Fixed: some API job responses were not correctly read as a successful response
 - Changed: raised registers update job wait delay and number of retry attempts to avoid failing reads even when API is slow
@@ -39,5 +43,3 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Fixed: login refresh tried forever in case of failure, instead of rebooting to regular login
-- Changed: parse less (unused) device data, possible fix for plugin not finding stove name from API (#5)
