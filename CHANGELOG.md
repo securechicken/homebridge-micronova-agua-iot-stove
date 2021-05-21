@@ -43,3 +43,4 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
+- Fixed: possible status update freeze in rare conditions when API replied unexpectedly

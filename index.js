@@ -803,9 +803,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_BUFFER] = POST_API_DEVICEREADBUFFER_VALUE_BUFFER;
 				this._sendAPIRequest(API_DEVICEREADBUFFER, "POST", JSON.stringify(regupdatepostdata), (err, json) => {
 					if (json || !err) {
+						this.apiPendingReadJob = false;
 						if ((RESP_API_DEVICEREADBUFFER_KEY_JOBID in json)) {
 							this._waitForRegistersDataReadJobResult(json[RESP_API_DEVICEREADBUFFER_KEY_JOBID], (err, registersok) => {
-								this.apiPendingReadJob = false;
 								callback(err, registersok);
 							});
 						} else {
