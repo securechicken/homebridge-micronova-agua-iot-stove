@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.2] - 2021-05-22
+- Fixed: possible status update freeze in rare conditions when API replied unexpectedly
+
 ## [1.0.1] - 2021-05-18
 - Fixed: login refresh tried forever in case of failure, instead of rebooting to regular login
 - Changed: parse less (unused) device data, possible fix for plugin not finding stove name from API (#5)
@@ -43,4 +46,3 @@
 - Added: first public alpha and package
 
 ## [Unreleased]
-- Fixed: possible status update freeze in rare conditions when API replied unexpectedly
