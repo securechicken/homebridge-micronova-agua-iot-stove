@@ -3,7 +3,8 @@
 
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
-This plugin implementation has been made possible in a reasonable (free and personal) time, thanks to a previous [stove plugin](https://github.com/securechicken/homebridge-piazzetta-stove-simple) similar development, and an existing open-source [Micronova Agua IOT implementation](https://github.com/fredericvl/py-agua-iot) by @fredericvl (thanks a lot to him).
+## Disclaimer
+This plugin implementation has been made possible in a reasonable (free and personal) time, thanks to a previous [stove plugin](https://github.com/securechicken/homebridge-piazzetta-stove-simple) similar development, and an existing open-source [Micronova Agua IOT implementation](https://github.com/fredericvl/py-agua-iot) by @fredericvl (thanks a lot to him). This plugin is provided to be used as it is within Homebrige by advanced and tech-savvy users, or to serve as a code base for developers. The initial developer does not intend to implement additional features, or to offer general support on Homebridge, Agua IOT and stoves models use. Issues which prevent elementary and intended functions to work properly will be reviewed and considered. Enhancements requests will only be accepted from proposed pull requests, or from issues on cases that are described by this README. Users are free to fork and adapt this code base according to their needs, and in compliance with the license.
 
 ## Supported stoves
 This plugin has been developed for personal use, in order to control a single Piazzetta stove.  
