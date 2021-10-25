@@ -423,7 +423,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		} else {
 			this._debug("_setAPILogin refreshing authentication");
 		}
-		this.isAuth = false;
+		this.apiIsAuth = false;
 		let url = this.apiRoot;
 		if (!refresh) {
 			// Specific case for Piazzetta
@@ -472,7 +472,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				}
 				if (jwset) {
 					this.apiAuthToken = jsonresp[RESP_API_LOGIN_KEY_TOKEN];
-					this.isAuth = true;
+					this.apiIsAuth = true;
 					if (!refresh) {
 						this.apiAuthRefreshToken = jsonresp[RESP_API_LOGIN_KEY_REFRESHTOKEN];
 						this.apiAuthRefreshDelay = Math.abs((jwset[RESP_API_LOGIN_TOKEN_KEY_EXPIRY] * 1000) - Date.now() - HTTP_TIMEOUT);
@@ -501,7 +501,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				}
 			})
 			.catch( (err) => {
-				this.isAuth = false;
+				this.apiIsAuth = false;
 				this.apiAuthToken = null;
 				this.apiAuthRefreshToken = null;
 				// Try forever on regular login
@@ -516,7 +516,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Send an authenticated request to API
 	_sendAPIRequest(endpoint, httpmethod, postdata, callback) {
-		if (this.isAuth) {
+		if (this.apiIsAuth) {
 			const url = this.apiRoot + endpoint;
 			let requestheaders = {...this.apiHTTPHeaders};
 			requestheaders[HTTP_REQ_LOCAL_HEADER] = false;
@@ -527,7 +527,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					if (resp.ok) {
 						return resp.json();
 					} else if (resp.status === 401) {
-						this.isAuth = false;
+						this.apiIsAuth = false;
 						throw new Error("_sendAPIRequest got 401 status, not logged-in or token expired");
 					} else {
 						throw new Error("_sendAPIRequest got non-OK non-401 HTTP response status: " + resp.status);
@@ -802,8 +802,8 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_PRODUCT] = this.apiStoveDeviceProduct;
 				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_BUFFER] = POST_API_DEVICEREADBUFFER_VALUE_BUFFER;
 				this._sendAPIRequest(API_DEVICEREADBUFFER, "POST", JSON.stringify(regupdatepostdata), (err, json) => {
+					this.apiPendingReadJob = false;
 					if (json || !err) {
-						this.apiPendingReadJob = false;
 						if ((RESP_API_DEVICEREADBUFFER_KEY_JOBID in json)) {
 							this._waitForRegistersDataReadJobResult(json[RESP_API_DEVICEREADBUFFER_KEY_JOBID], (err, registersok) => {
 								callback(err, registersok);
