@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.3] - 2021-10-26
+- Fixed: authentication sometimes expired before API declared validity delay for some brands, resulting in frozen status. Authentication is now done as needed if this happens.
+
 ## [1.0.2] - 2021-05-22
 - Fixed: possible status update freeze in rare conditions when API replied unexpectedly
 

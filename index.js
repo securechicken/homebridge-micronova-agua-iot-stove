@@ -7,7 +7,7 @@ Copyright (C) 2021, @securechicken
 
 const PLUGIN_NAME = "homebridge-micronova-agua-iot-stove";
 const PLUGIN_AUTHOR = "@securechicken";
-const PLUGIN_VERSION = "1.0.2";
+const PLUGIN_VERSION = "1.0.3";
 const PLUGIN_DEVICE_MANUFACTURER = "Micronova Agua IOT";
 const ACCESSORY_PLUGIN_NAME = "HeaterCoolerMicronovaAguaIOTStove";
 
