@@ -78,6 +78,7 @@ const REGISTER_VALUE_STRING_VALPH = "{0}";
 // Doc: http://<brand>.agua-iot.com:3001/api-docs/
 const HTTP_TIMEOUT = 7000; // 7s in ms, web API can be laggy
 const HTTP_RETRY_DELAY = 10000; // 10s in ms
+const HTTP_STATUS_UNAUTH = 401;
 const HTTP_REQ_ACCEPT_HEADER = "Accept";
 const HTTP_REQ_CONTENT_HEADER = "Content-Type";
 const HTTP_REQ_ORIGIN_HEADER = "Origin";
@@ -526,9 +527,14 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				.then( (resp) => {
 					if (resp.ok) {
 						return resp.json();
-					} else if (resp.status === 401) {
-						this.apiIsAuth = false;
-						throw new Error("_sendAPIRequest got 401 status, not logged-in or token expired");
+					} else if (resp.status === HTTP_STATUS_UNAUTH) {
+						this._setAPILogin(true, (tokok, err) => {
+							if (tokok && !err) {
+								this._sendAPIRequest(endpoint, httpmethod, postdata, callback); 
+							} else {
+								throw new Error("_sendAPIRequest got 401 status, not logged-in or token expired");
+							}
+						});
 					} else {
 						throw new Error("_sendAPIRequest got non-OK non-401 HTTP response status: " + resp.status);
 					}
@@ -802,16 +808,18 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_PRODUCT] = this.apiStoveDeviceProduct;
 				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_BUFFER] = POST_API_DEVICEREADBUFFER_VALUE_BUFFER;
 				this._sendAPIRequest(API_DEVICEREADBUFFER, "POST", JSON.stringify(regupdatepostdata), (err, json) => {
-					this.apiPendingReadJob = false;
 					if (json || !err) {
 						if ((RESP_API_DEVICEREADBUFFER_KEY_JOBID in json)) {
 							this._waitForRegistersDataReadJobResult(json[RESP_API_DEVICEREADBUFFER_KEY_JOBID], (err, registersok) => {
+								this.apiPendingReadJob = false;
 								callback(err, registersok);
 							});
 						} else {
+							this.apiPendingReadJob = false;
 							callback("_updateAPIRegistersData did not get expected answer from API: " + JSON.stringify(json), null);
 						}
 					} else {
+						this.apiPendingReadJob = false;
 						callback("_updateAPIRegistersData API request failed: " + err, null);
 					}
 				});
@@ -1064,7 +1072,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 	*   If cache is old, the registers data will be updated from API. At the end of the
 	*   update, the Homebridge characteristic is updated with most up to date value. If
 	*   it changed from the first that has been server, Homebridge will trigger an
-	*   asynchronous update of it in HomeKi (just as when characteristics are set).
+	*   asynchronous update of it in HomeKit (just as when characteristics are set).
 	*/
 
 	// Get ON/OFF state
