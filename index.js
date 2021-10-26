@@ -89,7 +89,7 @@ const HTTP_REQ_LOCAL_HEADER = "local";
 const HTTP_REQ_AUTH_HEADER = "Authorization";
 const HTTP_REQ_PIAZZETTA_URL = "url";
 const HTTP_REQ_PIAZZETTA_APP_VERSION = "applicationversion";
-const HTTP_REQ_PIAZZETTA_APP_VERSION_VALUE = "1.6.0";
+const HTTP_REQ_PIAZZETTA_APP_VERSION_VALUE = "1.8.5";
 const HTTP_ACCEPT = "application/json, text/javascript, */*; q=0.01";
 const HTTP_CONTENT = "application/json";
 const HTTP_ORIGIN = "file://";
