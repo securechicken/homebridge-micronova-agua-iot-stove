@@ -200,11 +200,11 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		this.defaultStatePair = [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.IDLE];
 		this.stateMap = new Map([
 			[0, [this.Characteristic.Active.INACTIVE, this.Characteristic.CurrentHeaterCoolerState.INACTIVE]], // OFF, OFF E
-			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // AWAITING FLAME (+ ERROR 32)
-			[2, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LOAD PELLETS
+			[1, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LOAD PELLETS (+ ERROR 32)
+			[2, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // AWAITING FLAME
 			[3, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // LIGHTING
 			[4, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // WORRKING
-			[5, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // CLEANING BRASERO
+			[5, [this.Characteristic.Active.ACTIVE, this.Characteristic.CurrentHeaterCoolerState.HEATING]], // ASHPAN CLEANING
 			[6, this.defaultStatePair], // FINAL CLEANING
 			[7, this.defaultStatePair], // STANDBY
 			[8, this.defaultStatePair], // ALARM
@@ -467,22 +467,29 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			.then( (jsonresp) => {
 				this._debug("_setAPILogin got a OK response");
 				let jwset = null;
-				if (jsonresp && (RESP_API_LOGIN_KEY_TOKEN in jsonresp) && (refresh || (RESP_API_LOGIN_KEY_REFRESHTOKEN in jsonresp))) {
+				let jwref = null;
+				let refdel = null;
+				if (jsonresp && (RESP_API_LOGIN_KEY_TOKEN in jsonresp)) {
 					jwset = jwt.decode(jsonresp[RESP_API_LOGIN_KEY_TOKEN]);
 					this._debug("_setAPILogin got JWT token decoded as: " + JSON.stringify(jwset));
+					if (RESP_API_LOGIN_KEY_REFRESHTOKEN in jsonresp) {
+						jwref = jwt.decode(jsonresp[RESP_API_LOGIN_KEY_REFRESHTOKEN]);
+						this._debug("_setAPILogin got JWT refresh token decoded as: " + JSON.stringify(jwref));
+						refdel = Math.abs((jwset[RESP_API_LOGIN_TOKEN_KEY_EXPIRY] * 1000) - Date.now() - HTTP_TIMEOUT);
+					}
 				}
 				if (jwset) {
 					this.apiAuthToken = jsonresp[RESP_API_LOGIN_KEY_TOKEN];
 					this.apiIsAuth = true;
-					if (!refresh) {
+					if (jwref && refdel && !refresh) {
 						this.apiAuthRefreshToken = jsonresp[RESP_API_LOGIN_KEY_REFRESHTOKEN];
-						this.apiAuthRefreshDelay = Math.abs((jwset[RESP_API_LOGIN_TOKEN_KEY_EXPIRY] * 1000) - Date.now() - HTTP_TIMEOUT);
+						this.apiAuthRefreshDelay = refdel;
 						this.log.info("_setAPILogin successfully logged-in, setting auto-login refresh job every " + this.apiAuthRefreshDelay + " ms");
 						if (this.jobAutoLogin !== null) {
 							clearInterval(this.jobAutoLogin);
 							this.jobAutoLogin = null;
 						}
-						this.jobAutoLogin = setInterval( this._setAPILogin.bind(this), this.apiAuthRefreshDelay, true, (err, ok) => {
+						this.jobAutoLogin = setInterval(this._setAPILogin.bind(this), this.apiAuthRefreshDelay, true, (err, ok) => {
 							if (err || !ok) {
 								this._debug("_setAPILogin failed to auto-refresh token, rebooting to a regular auth: " + err);
 								clearInterval(this.jobAutoLogin);
@@ -546,7 +553,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				.catch( (err) => {
 					this.log.error("_sendAPIRequest HTTP request failed. Retrying... Reason: " + err.message);
 					setTimeout(this._sendAPIRequest.bind(this), HTTP_RETRY_DELAY, endpoint, httpmethod, postdata, callback);
-					//callback(err.message, null);
 				});
 		} else {
 			callback("_sendAPIRequest could not send API request: not logged-in...", null);
@@ -598,6 +604,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			if (json || !err) {
 				if ((RESP_API_DEVICEINFO_KEY_INFO in json) && (json[RESP_API_DEVICEINFO_KEY_INFO].length > 0) && 
 					(RESP_API_DEVICEINFO_KEY_REGISTERSMAP_ID in json[RESP_API_DEVICEINFO_KEY_INFO][0])) {
+					this._debug("_getAPIStoveDeviceInfo got infos " + JSON.stringify(json));
 					callback(null, json[RESP_API_DEVICEINFO_KEY_INFO][0][RESP_API_DEVICEINFO_KEY_REGISTERSMAP_ID]);
 				} else {
 					callback("_getAPIStoveDeviceInfo did not get expected result (map ID) from API: " + JSON.stringify(json), null);
