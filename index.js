@@ -134,32 +134,41 @@ const RESP_API_DEVICEREGISTERSMAP_KEY_L2 = "registers_map";
 const RESP_API_DEVICEREGISTERSMAP_KEY_ID = "id";
 const RESP_API_DEVICEREGISTERSMAP_KEY_REGISTERS = "registers";
 const RESP_API_DEVICEREGISTERSMAP_REGISTER_KEYS = [REGISTER_KEY_TYPE, REGISTER_KEY_OFFSET, REGISTER_KEY_FORMULA, REGISTER_KEY_FORMULAREV, REGISTER_KEY_FORMAT, REGISTER_KEY_MIN, REGISTER_KEY_MAX, REGISTER_KEY_STEP, REGISTER_KEY_MASK];
-const API_DEVICEREADBUFFER = "deviceGetBufferReading";
-const POST_API_DEVICEREADBUFFER_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
-const POST_API_DEVICEREADBUFFER_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
-const POST_API_DEVICEREADBUFFER_KEY_BUFFER = "BufferId";
-const POST_API_DEVICEREADBUFFER_VALUE_BUFFER = 1;
-const RESP_API_DEVICEREADBUFFER_KEY_JOBID = "idRequest";
-const API_DEVICEWRITEBUFFER = "deviceRequestWriting";
-const POST_API_DEVICEWRITEBUFFER_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
-const POST_API_DEVICEWRITEBUFFER_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
-const POST_API_DEVICEWRITEBUFFER_KEY_PROTO = "Protocol";
-const POST_API_DEVICEWRITEBUFFER_KEY_BITDATA = "BitData";
-const POST_API_DEVICEWRITEBUFFER_KEY_ENDIANESS = "Endianess";
-const POST_API_DEVICEWRITEBUFFER_KEY_ITEMS = "Items";
-const POST_API_DEVICEWRITEBUFFER_KEY_MASKS = "Masks";
-const POST_API_DEVICEWRITEBUFFER_KEY_VALUES = "Values";
-const POST_API_DEVICEWRITEBUFFER_VALUE_PROTO = "RWMSmaster";
-const POST_API_DEVICEWRITEBUFFER_VALUE_BITDATA = [8];
-const POST_API_DEVICEWRITEBUFFER_VALUE_ENDIANESS = ["L"];
-const RESP_API_DEVICEWRITEBUFFER_KEY_JOBID = RESP_API_DEVICEREADBUFFER_KEY_JOBID;
+const API_DEVICEREAD = "deviceRequestReading";
+const POST_API_DEVICEREAD_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
+const POST_API_DEVICEREAD_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
+const POST_API_DEVICEREAD_KEY_PROTO = "Protocol";
+const POST_API_DEVICEREAD_KEY_BITDATA = "BitData";
+const POST_API_DEVICEREAD_KEY_ENDIANESS = "Endianess";
+const POST_API_DEVICEREAD_KEY_FREQ = "Freq";
+const POST_API_DEVICEREAD_KEY_ITEMS = "Items";
+const POST_API_DEVICEREAD_KEY_MASKS = "Masks";
+const POST_API_DEVICEREAD_KEY_VALUES = "Values";
+const POST_API_DEVICEREAD_VALUE_PROTO = "RWMSmaster";
+const POST_API_DEVICEREAD_VALUE_BITDATA = 8;
+const POST_API_DEVICEREAD_VALUE_ENDIANESS = "L";
+const POST_API_DEVICEREAD_VALUE_FREQ = 0;
+const RESP_API_DEVICEREAD_KEY_JOBID = "idRequest";
+const API_DEVICEWRITE = "deviceRequestWriting";
+const POST_API_DEVICEWRITE_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
+const POST_API_DEVICEWRITE_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
+const POST_API_DEVICEWRITE_KEY_PROTO = POST_API_DEVICEREAD_KEY_PROTO;
+const POST_API_DEVICEWRITE_KEY_BITDATA = POST_API_DEVICEREAD_KEY_BITDATA;
+const POST_API_DEVICEWRITE_KEY_ENDIANESS = POST_API_DEVICEREAD_KEY_ENDIANESS;
+const POST_API_DEVICEWRITE_KEY_ITEMS = POST_API_DEVICEREAD_KEY_ITEMS;
+const POST_API_DEVICEWRITE_KEY_MASKS = POST_API_DEVICEREAD_KEY_MASKS;
+const POST_API_DEVICEWRITE_KEY_VALUES = POST_API_DEVICEREAD_KEY_VALUES;
+const POST_API_DEVICEWRITE_VALUE_PROTO = POST_API_DEVICEREAD_VALUE_PROTO;
+const POST_API_DEVICEWRITE_VALUE_BITDATA = POST_API_DEVICEREAD_VALUE_BITDATA;
+const POST_API_DEVICEWRITE_VALUE_ENDIANESS = POST_API_DEVICEREAD_VALUE_ENDIANESS;
+const RESP_API_DEVICEWRITE_KEY_JOBID = RESP_API_DEVICEREAD_KEY_JOBID;
 const API_DEVICEJOBSTATUS = "deviceJobStatus";
 const API_DEVICEJOBSTATUS_MAX_RETRIES = 15;
 const API_DEVICEJOBSTATUS_DELAY_RETRY = 1000; // 1000 ms
 const RESP_API_DEVICEJOBSTATUS_KEY_STATUS = "jobAnswerStatus";
 const RESP_API_DEVICEJOBSTATUS_KEY_RESULT = "jobAnswerData";
-const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS = POST_API_DEVICEWRITEBUFFER_KEY_ITEMS;
-const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES = POST_API_DEVICEWRITEBUFFER_KEY_VALUES;
+const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_ITEMS = POST_API_DEVICEWRITE_KEY_ITEMS;
+const RESP_API_DEVICEJOBSTATUS_RESULT_KEY_VALUES = POST_API_DEVICEWRITE_KEY_VALUES;
 const RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE = "NackErrCode";
 const RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_OK = "completed";
 const RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_NTD = "terminated";
@@ -180,6 +189,7 @@ const STOVE_SET_TEMP_REGISTER = "temp_air_set";
 const STOVE_CURRENT_POWER_REGISTER = "power_set"; // real_power_get for applied power
 const STOVE_SET_POWER_REGISTER = "power_set";
 const STOVE_REGISTERS_CACHE_KEEP = 10000; // 10s in ms
+const STOVE_READ_REGISTERS = [STOVE_ALARM_REGISTER, STOVE_POWER_STATE_INFO_REGISTER, STOVE_STATE_REGISTER, STOVE_CURRENT_TEMP_REGISTER, STOVE_SET_TEMP_REGISTER, STOVE_CURRENT_POWER_REGISTER];
 
 class HeaterCoolerMicronovaAguaIOTStove {
 	constructor(log, config, api) {
@@ -563,6 +573,44 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		}
 	}
 
+	// Get a job result from API, or fail if max attempts reached
+	_getAPIJobResult(jobid, attempt, callback) {
+		if (this.apiStoveRegistersSet) {
+			this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " start");
+			if (attempt < API_DEVICEJOBSTATUS_MAX_RETRIES) {
+				const url = API_DEVICEJOBSTATUS + "/" + jobid;
+				this._sendAPIRequest(url, "GET", null, (err, json) => {
+					if (json || !err) {
+						if ((RESP_API_DEVICEJOBSTATUS_KEY_STATUS in json)) {
+							this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " result: " + json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS]);
+							if (json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS] === RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_OK) {
+								if (RESP_API_DEVICEJOBSTATUS_KEY_RESULT in json) {
+									callback(null, json[RESP_API_DEVICEJOBSTATUS_KEY_RESULT]);
+								} else {
+									callback("_getAPIJobResult got job result without data: " + JSON.stringify(json), null);
+								}
+							} else if (json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS] === RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_NTD) {
+								this._debug("_getAPIJobResult " + jobid + " finished successfully without returning data");
+								callback(null, null);
+							} else {
+								this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " needs to schedule another attempt");
+								setTimeout(this._getAPIJobResult.bind(this), API_DEVICEJOBSTATUS_DELAY_RETRY, jobid, attempt + 1, callback);
+							}
+						} else {
+							callback("_getAPIJobResult did not get expected job result from API: " + JSON.stringify(json), null);
+						}
+					} else {
+						callback("_getAPIJobResult API request failed: " + err, null);
+					}
+				});
+			} else {
+				callback("_getAPIJobResult did not complete in " + API_DEVICEJOBSTATUS_MAX_RETRIES + " requests", null);
+			}
+		} else {
+			callback("_getAPIJobResult cannot query job result: stove registers map is not set", null);
+		}
+	}
+
 	// Get the list of stove devices known for the config given account from API, and select first
 	_getAPIStoveDevicesList(callback) {
 		this._sendAPIRequest(API_DEVICESLIST, "POST", null, (err, json) => {
@@ -595,6 +643,23 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				}
 			} else {
 				callback("_getAPIStoveDevicesList failed: " + err, null);
+			}
+		});
+	}
+
+	// Get the list of stove devices from API, select first one for further use, and get its registers map
+	_getAPIStoveDevice(callback) {
+		this._getAPIStoveDevicesList((err, founddev) => {
+			if (founddev || !err) {
+				this._getAPIStoveDeviceInfo((err, registersmapid) => {
+					if (registersmapid || !err) {
+						this._getAPIStoveRegistersMap(registersmapid, callback);
+					} else {
+						callback("_getAPIStoveDevice could not retrieve device registers map ID from API: " + err, null);
+					}
+				});
+			} else {
+				callback("_getAPIStoveDevice could not retrieve selected device (" + this.config.name + ") from API devices list: " + err, null);
 			}
 		});
 	}
@@ -691,7 +756,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					}
 					if (!brokein) {
 						this.apiStoveRegistersSet = true;
-						this._debug("_getAPIStoveRegistersMap apiStoveRegisters: " + Object.keys(this.apiStoveRegisters));
+						this._debug("_getAPIStoveRegistersMap retrieved registers map");
 						for (const offnamecouple of this.apiStoveOffsetsRegistersMap.entries()) {
 							this._debug(offnamecouple[0] + " => " + offnamecouple[1]);
 						}
@@ -708,59 +773,98 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Get the list of stove devices from API, select first one for further use, and get its registers map
-	_getAPIStoveDevice(callback) {
-		this._getAPIStoveDevicesList((err, founddev) => {
-			if (founddev || !err) {
-				this._getAPIStoveDeviceInfo((err, registersmapid) => {
-					if (registersmapid || !err) {
-						this._getAPIStoveRegistersMap(registersmapid, callback);
-					} else {
-						callback("_getAPIStoveDevice could not retrieve device registers map ID from API: " + err, null);
-					}
-				});
-			} else {
-				callback("_getAPIStoveDevice could not retrieve selected device (" + this.config.name + ") from API devices list: " + err, null);
+	// Read required stove registers data from API
+	_readAPIStoveRegisters(callback) {
+		let readitems = [];
+		let readmasks = [];
+		function gsrCb(err, register) {
+			if (register || !err) {
+				readitems.push(register[REGISTER_KEY_OFFSET]);
+				readmasks.push(register[REGISTER_KEY_MASK]);
 			}
-		});
+		}
+		for (let registername of STOVE_READ_REGISTERS) {
+			this._getStoveRegister(registername, gsrCb);
+		}
+		if (readitems.length === STOVE_READ_REGISTERS.length) {
+			this._debug("_readAPIStoveRegisters asked to read");
+			let regreadpostdata = {};
+			regreadpostdata[POST_API_DEVICEREAD_KEY_ID] = this.apiStoveDeviceID;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_PRODUCT] = this.apiStoveDeviceProduct;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_PROTO] = POST_API_DEVICEREAD_VALUE_PROTO;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_BITDATA] = POST_API_DEVICEREAD_VALUE_BITDATA;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_ENDIANESS] = POST_API_DEVICEREAD_VALUE_ENDIANESS;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_FREQ] = POST_API_DEVICEREAD_VALUE_FREQ;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_ITEMS] = readitems;
+			regreadpostdata[POST_API_DEVICEREAD_KEY_MASKS] = readmasks;
+			this._sendAPIRequest(API_DEVICEREAD, "POST", JSON.stringify(regreadpostdata), (err, json) => {
+				if (json || !err) {
+					if ((RESP_API_DEVICEREAD_KEY_JOBID in json)) {
+						this._waitForRegistersDataReadJobResult(json[RESP_API_DEVICEREAD_KEY_JOBID], (err, registersok) => {
+							callback(err, registersok);
+						});
+					} else {
+						callback("_readAPIStoveRegisters did not get expected result from API: " + JSON.stringify(json));
+					}
+				} else {
+					callback("_readAPIStoveRegisters failed to request registers read with API: " + err, null);
+				}
+			});
+		} else {
+			callback("_readAPIStoveRegisters failed to get stove registers before trying to read them", null);
+		}
 	}
 
-	// Get a job result from API, or fail if max attempts reached
-	_getAPIJobResult(jobid, attempt, callback) {
-		if (this.apiStoveRegistersSet) {
-			this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " start");
-			if (attempt < API_DEVICEJOBSTATUS_MAX_RETRIES) {
-				const url = API_DEVICEJOBSTATUS + "/" + jobid;
-				this._sendAPIRequest(url, "GET", null, (err, json) => {
-					if (json || !err) {
-						if ((RESP_API_DEVICEJOBSTATUS_KEY_STATUS in json)) {
-							this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " result: " + json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS]);
-							if (json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS] === RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_OK) {
-								if (RESP_API_DEVICEJOBSTATUS_KEY_RESULT in json) {
-									callback(null, json[RESP_API_DEVICEJOBSTATUS_KEY_RESULT]);
+	// Write a stove register to API
+	_writeAPIStoveRegister(registername, value, callback) {
+		this._getStoveRegister(registername, (err, register) => {
+			if (register || !err) {
+				if (value >= register[REGISTER_KEY_MIN] && value <= register[REGISTER_KEY_MAX]) {
+					const calcedval = this._calculateStoveValue(register, false, true, value);
+					if (calcedval) {
+						this._debug("_writeAPIStoveRegister asked to write " + registername + "=" + value + " => " + register[REGISTER_KEY_OFFSET] + "=" + calcedval);
+						let regwritepostdata = {};
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_ID] = this.apiStoveDeviceID;
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_PRODUCT] = this.apiStoveDeviceProduct;
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_PROTO] = POST_API_DEVICEWRITE_VALUE_PROTO;
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_BITDATA] = POST_API_DEVICEWRITE_VALUE_BITDATA;
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_ENDIANESS] = POST_API_DEVICEWRITE_VALUE_ENDIANESS;
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_ITEMS] = [register[REGISTER_KEY_OFFSET]];
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_MASKS] = [register[REGISTER_KEY_MASK]];
+						regwritepostdata[POST_API_DEVICEWRITE_KEY_VALUES] = [calcedval];
+						this._sendAPIRequest(API_DEVICEWRITE, "POST", JSON.stringify(regwritepostdata), (err, json) => {
+							if (json || !err) {
+								if ((RESP_API_DEVICEWRITE_KEY_JOBID in json)) {
+									this._getAPIJobResult(json[RESP_API_DEVICEWRITE_KEY_JOBID], 0, (err, res) => {
+										if (res || !err) {
+											if (RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE in res) {
+												callback("_writeAPIStoveRegister API job returned an error: " + res[RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE], null);
+											} else {
+												register[REGISTER_INTERNAL_KEY_VALUE] = calcedval;
+												this._debug("_writeAPIStoveRegister wrote registers in API");
+												callback(null, true);
+											}
+										} else {
+											callback("_writeAPIStoveRegister API job failed: " + err, null);
+										}
+									});
 								} else {
-									callback("_getAPIJobResult got job result without data: " + JSON.stringify(json), null);
+									callback("_writeAPIStoveRegister did not get expected result from API: " + JSON.stringify(json));
 								}
-							} else if (json[RESP_API_DEVICEJOBSTATUS_KEY_STATUS] === RESP_API_DEVICEJOBSTATUS_VALUE_STATUS_NTD) {
-								this._debug("_getAPIJobResult " + jobid + " finished successfully without returning data");
-								callback(null, null);
 							} else {
-								this._debug("_getAPIJobResult " + jobid + " attempt " + attempt + " needs to schedule another attempt");
-								setTimeout(this._getAPIJobResult.bind(this), API_DEVICEJOBSTATUS_DELAY_RETRY, jobid, attempt + 1, callback);
+								callback("_writeAPIStoveRegister failed to request registers write with API: " + err, null);
 							}
-						} else {
-							callback("_getAPIJobResult did not get expected job result from API: " + JSON.stringify(json), null);
-						}
+						});
 					} else {
-						callback("_getAPIJobResult API request failed: " + err, null);
+						callback("_writeAPIStoveRegister could not calculate register value for: " + registername, null);
 					}
-				});
+				} else {
+					callback("_writeAPIStoveRegister wanted to write an out ot bound value for " + registername + ": " + value, null);
+				}
 			} else {
-				callback("_getAPIJobResult did not complete in " + API_DEVICEJOBSTATUS_MAX_RETRIES + " requests", null);
+				callback("_writeAPIStoveRegister failed to get stove register before trying to write it: " + err, null);
 			}
-		} else {
-			callback("_getAPIJobResult cannot query job result: stove registers map is not set", null);
-		}
+		});
 	}
 
 	// Wait for read registers data job results, and parse it when done
@@ -802,7 +906,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		});
 	}
 
-	// Update registers data cache from API values
+	// Update registers data cache from API values if necessary
 	_updateAPIRegistersData(callback) {
 		this._debug("_updateAPIRegistersData called, apiStoveRegistersSet=" + this.apiStoveRegistersSet + ", apiPendingReadJob=" + this.apiPendingReadJob);
 		if (this.apiStoveRegistersSet) {
@@ -813,29 +917,13 @@ class HeaterCoolerMicronovaAguaIOTStove {
 			} else if ((this.lastStoveRegistersUpdate + STOVE_REGISTERS_CACHE_KEEP) >= Date.now()) {
 				this._debug("_updateAPIRegistersData will do nothing, cache is up to date");
 				callback(null, false);
-			// Otherwise, schedule an API read job, then wait for it to complete to fill the cache
+			// Otherwise, schedule a real API data read job to fill the cache
 			} else {
 				// This var is doing the magic on knowing if a read job is already scheduled
 				this.apiPendingReadJob = true;
-				let regupdatepostdata = {};
-				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_ID] = this.apiStoveDeviceID;
-				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_PRODUCT] = this.apiStoveDeviceProduct;
-				regupdatepostdata[POST_API_DEVICEREADBUFFER_KEY_BUFFER] = POST_API_DEVICEREADBUFFER_VALUE_BUFFER;
-				this._sendAPIRequest(API_DEVICEREADBUFFER, "POST", JSON.stringify(regupdatepostdata), (err, json) => {
-					if (json || !err) {
-						if (json && (RESP_API_DEVICEREADBUFFER_KEY_JOBID in json)) {
-							this._waitForRegistersDataReadJobResult(json[RESP_API_DEVICEREADBUFFER_KEY_JOBID], (err, registersok) => {
-								this.apiPendingReadJob = false;
-								callback(err, registersok);
-							});
-						} else {
-							this.apiPendingReadJob = false;
-							callback("_updateAPIRegistersData did not get expected answer from API: " + JSON.stringify(json), null);
-						}
-					} else {
-						this.apiPendingReadJob = false;
-						callback("_updateAPIRegistersData API request failed: " + err, null);
-					}
+				this._readAPIStoveRegisters((err, registersok) => {
+					this.apiPendingReadJob = false;
+					callback(err, registersok);
 				});
 			}
 		} else {
@@ -933,58 +1021,6 @@ class HeaterCoolerMicronovaAguaIOTStove {
 		}
 	}
 
-	// Write a stove register to API
-	_writeStoveRegister(registername, value, callback) {
-		this._getStoveRegister(registername, (err, register) => {
-			if (register || !err) {
-				if (value >= register[REGISTER_KEY_MIN] && value <= register[REGISTER_KEY_MAX]) {
-					const calcedval = this._calculateStoveValue(register, false, true, value);
-					if (calcedval) {
-						this._debug("_writeStoveRegister asked to write " + registername + "=" + value + " => " + register[REGISTER_KEY_OFFSET] + "=" + calcedval);
-						let regwritepostdata = {};
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_ID] = this.apiStoveDeviceID;
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_PRODUCT] = this.apiStoveDeviceProduct;
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_PROTO] = POST_API_DEVICEWRITEBUFFER_VALUE_PROTO;
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_BITDATA] = POST_API_DEVICEWRITEBUFFER_VALUE_BITDATA;
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_ENDIANESS] = POST_API_DEVICEWRITEBUFFER_VALUE_ENDIANESS;
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_ITEMS] = [register[REGISTER_KEY_OFFSET]];
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_MASKS] = [register[REGISTER_KEY_MASK]];
-						regwritepostdata[POST_API_DEVICEWRITEBUFFER_KEY_VALUES] = [calcedval];
-						this._sendAPIRequest(API_DEVICEWRITEBUFFER, "POST", JSON.stringify(regwritepostdata), (err, json) => {
-							if (json || !err) {
-								if ((RESP_API_DEVICEWRITEBUFFER_KEY_JOBID in json)) {
-									this._getAPIJobResult(json[RESP_API_DEVICEWRITEBUFFER_KEY_JOBID], 0, (err, res) => {
-										if (res || !err) {
-											if (RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE in res) {
-												callback("_writeStoveRegister API job returned an error: " + res[RESP_API_DEVICEJOBSTATUS_RESULT_WRITE_KEY_ERRCODE], null);
-											} else {
-												register[REGISTER_INTERNAL_KEY_VALUE] = calcedval;
-												this._debug("_writeStoveRegister wrote registers in API");
-												callback(null, true);
-											}
-										} else {
-											callback("_writeStoveRegister API job failed: " + err, null);
-										}
-									});
-								} else {
-									callback("_writeStoveRegister did not get expected result from API: " + JSON.stringify(json));
-								}
-							} else {
-								callback("_writeStoveRegister failed to request registers write with API: " + err, null);
-							}
-						});
-					} else {
-						callback("_writeStoveRegister could not calculate register value for: " + registername, null);
-					}
-				} else {
-					callback("_writeStoveRegister wanted to write an out ot bound value for " + registername + ": " + value, null);
-				}
-			} else {
-				callback("_writeStoveRegister failed to get stove register before trying to write it: " + err, null);
-			}
-		});
-	}
-
 	// Determine stove status based on register data
 	_calculateStoveStatus(value, state) {
 		const index = (state) ? (1) : (0);
@@ -1005,10 +1041,10 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					if ((value !== null) || !err) {
 						const active = this._calculateStoveStatus(value, false);
 						this.stoveService.updateCharacteristic(this.Characteristic.Active, active);
-						this._debug("_updateCharacteristicsValues Active: " + value + " => " + active + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues Active: " + value + " => " + active + " (ERR: " + err + ")");
 						const status = this._calculateStoveStatus(value, true);
 						this.stoveService.updateCharacteristic(this.Characteristic.CurrentHeaterCoolerState, status);
-						this._debug("_updateCharacteristicsValues CurrentHeaterCoolerState: " + value + " => " + active + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues CurrentHeaterCoolerState: " + value + " => " + active + " (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_STATE_REGISTER + ": " + err);
 					}
@@ -1016,7 +1052,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this._getStoveRegisterValueFromCache(STOVE_CURRENT_TEMP_REGISTER, false, (err, value) => {
 					if ((value !== null) || !err) {
 						this.stoveService.updateCharacteristic(this.Characteristic.CurrentTemperature, value);
-						this._debug("_updateCharacteristicsValues CurrentTemperature: " + value + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues CurrentTemperature: " + value + " (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_TEMP_REGISTER + ": " + err);
 					}
@@ -1024,7 +1060,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this._getStoveRegisterValueFromCache(STOVE_SET_TEMP_REGISTER, false, (err, value) => {
 					if ((value !== null) || !err) {
 						this.stoveService.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, value);
-						this._debug("_updateCharacteristicsValues HeatingThresholdTemperature: " + value + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues HeatingThresholdTemperature: " + value + " (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_SET_TEMP_REGISTER + ": " + err);
 					}
@@ -1032,7 +1068,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 				this._getStoveRegisterValueFromCache(STOVE_CURRENT_POWER_REGISTER, false, (err, value) => {
 					if ((value !== null) || !err) {
 						this.stoveService.updateCharacteristic(this.Characteristic.RotationSpeed, value);
-						this._debug("_updateCharacteristicsValues RotationSpeed: " + value + ", (ERR: " + err + ")");
+						this._debug("_updateCharacteristicsValues RotationSpeed: " + value + " (ERR: " + err + ")");
 					} else {
 						this.log.error("_updateCharacteristicsValues failed from " + STOVE_CURRENT_POWER_REGISTER + ": " + err);
 					}
@@ -1145,7 +1181,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 							calcerr = "setStoveActive stopped by power swing protection: last power change is too close in time (next power state change possible at " + new Date(this.lastStovePowerChange + POWER_SWING_PROTECTION_DELAY) + ")";
 							this.log.warn(calcerr);
 						} else {
-							this._writeStoveRegister(registername, targetvalue, (err, ok) => {
+							this._writeAPIStoveRegister(registername, targetvalue, (err, ok) => {
 								if (ok || !err) {
 									this.stoveService.updateCharacteristic(this.Characteristic.Active, state);
 									this.lastStovePowerChange = dn;
@@ -1172,7 +1208,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Set threshold temperature from which to power on heating
 	setStoveTemp(temp, callback) {
-		this._writeStoveRegister(STOVE_SET_TEMP_REGISTER, temp, (err, ok) => {
+		this._writeAPIStoveRegister(STOVE_SET_TEMP_REGISTER, temp, (err, ok) => {
 			if (ok || !err) {
 				this.stoveService.updateCharacteristic(this.Characteristic.HeatingThresholdTemperature, temp);
 				this.log.info("setStoveTemp set stove heating temp to " + temp);
@@ -1185,7 +1221,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 
 	// Set stove running power
 	setStovePower(power, callback) {
-		this._writeStoveRegister(STOVE_SET_POWER_REGISTER, power, (err, ok) => {
+		this._writeAPIStoveRegister(STOVE_SET_POWER_REGISTER, power, (err, ok) => {
 			if (ok || !err) {
 				this.stoveService.updateCharacteristic(this.Characteristic.RotationSpeed, power);
 				this.log.info("setStovePower set stove power to " + power);
