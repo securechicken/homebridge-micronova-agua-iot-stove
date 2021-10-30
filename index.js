@@ -59,6 +59,7 @@ const REGISTER_KEY_FORMULAREV = "formula_inverse";
 const REGISTER_KEY_FORMAT = "format_string";
 const REGISTER_KEY_MIN = "set_min";
 const REGISTER_KEY_MAX = "set_max";
+const REGISTER_KEY_STEP = "step";
 const REGISTER_KEY_MASK = "mask";
 const REGISTER_KEY_ENCVAL = "enc_val";
 const REGISTER_ENCVAL_KEY_LANG = "lang";
@@ -132,7 +133,7 @@ const RESP_API_DEVICEREGISTERSMAP_KEY_L1 = "device_registers_map";
 const RESP_API_DEVICEREGISTERSMAP_KEY_L2 = "registers_map";
 const RESP_API_DEVICEREGISTERSMAP_KEY_ID = "id";
 const RESP_API_DEVICEREGISTERSMAP_KEY_REGISTERS = "registers";
-const RESP_API_DEVICEREGISTERSMAP_REGISTER_KEYS = [REGISTER_KEY_TYPE, REGISTER_KEY_OFFSET, REGISTER_KEY_FORMULA, REGISTER_KEY_FORMULAREV, REGISTER_KEY_FORMAT, REGISTER_KEY_MIN, REGISTER_KEY_MAX, REGISTER_KEY_MASK];
+const RESP_API_DEVICEREGISTERSMAP_REGISTER_KEYS = [REGISTER_KEY_TYPE, REGISTER_KEY_OFFSET, REGISTER_KEY_FORMULA, REGISTER_KEY_FORMULAREV, REGISTER_KEY_FORMAT, REGISTER_KEY_MIN, REGISTER_KEY_MAX, REGISTER_KEY_STEP, REGISTER_KEY_MASK];
 const API_DEVICEREADBUFFER = "deviceGetBufferReading";
 const POST_API_DEVICEREADBUFFER_KEY_ID = RESP_API_DEVICESLIST_KEY_DEVICE_ID;
 const POST_API_DEVICEREADBUFFER_KEY_PRODUCT = RESP_API_DEVICESLIST_KEY_DEVICE_PRODUCT;
@@ -170,8 +171,6 @@ const API_UPDATE_VALUES_DELAY = 3600000; // 1h in ms
 const POWER_SWING_PROTECTION_DELAY = 3600000; // 1h in ms
 const STOVE_ALARM_REGISTER = "alarms_get";
 const STOVE_ALARM_IGNORE_VALUES = [0]; // 0 is no alarm
-const STOVE_TEMP_DELTA = 1;
-const STOVE_POWER_DELTA = 1;
 const STOVE_POWER_STATE_INFO_REGISTER = "status_managed_get";
 const STOVE_POWER_STATE_SET_ON_REGISTER = STOVE_POWER_STATE_INFO_REGISTER;
 const STOVE_POWER_STATE_SET_OFF_REGISTER = STOVE_POWER_STATE_INFO_REGISTER;
@@ -336,7 +335,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								this._getStoveRegisterBoundaries(STOVE_CURRENT_TEMP_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
 										this.stoveService.getCharacteristic(this.Characteristic.CurrentTemperature)
-											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: STOVE_TEMP_DELTA});
+											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: boundaries[2]});
 										this.stoveCharDefaultTemp = boundaries[0];
 									} else {
 										this.log.error("init could not get stove current temperature boundaries: " + err);
@@ -345,7 +344,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								this._getStoveRegisterBoundaries(STOVE_SET_TEMP_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
 										this.stoveService.getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
-											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: STOVE_TEMP_DELTA});
+											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: boundaries[2]});
 										this.stoveCharDefaultSetTemp = boundaries[0];
 									} else {
 										this.log.error("init could not get stove temperature threshold boundaries: " + err);
@@ -354,7 +353,7 @@ class HeaterCoolerMicronovaAguaIOTStove {
 								this._getStoveRegisterBoundaries(STOVE_SET_POWER_REGISTER, (err, boundaries) => {
 									if (boundaries || !err) {
 										this.stoveService.getCharacteristic(this.Characteristic.RotationSpeed)
-											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: STOVE_POWER_DELTA});
+											.setProps({minValue: boundaries[0], maxValue: boundaries[1], minStep: boundaries[2]});
 										this.stoveCharDefaultPower = boundaries[0];
 									} else {
 										this.log.error("init could not get stove power boundaries: " + err);
@@ -905,8 +904,9 @@ class HeaterCoolerMicronovaAguaIOTStove {
 					if ( (REGISTER_KEY_MIN in register) && (REGISTER_KEY_MAX in register) ) {
 						const bmin = register[REGISTER_KEY_MIN];
 						const bmax = register[REGISTER_KEY_MAX];
-						this._debug("_getStoveRegisterBoundaries " + registername + " => [" + bmin + ", " + bmax + "]");
-						callback(null, [bmin, bmax]);
+						const bstep = register[REGISTER_KEY_STEP];
+						this._debug("_getStoveRegisterBoundaries " + registername + " => [" + bmin + ", " + bmax + "] step " + bstep);
+						callback(null, [bmin, bmax, bstep]);
 					} else {
 						callback("_getStoveRegisterBoundaries could not get boundaries from register for: " + registername, null);
 					}

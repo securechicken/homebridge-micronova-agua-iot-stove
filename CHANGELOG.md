@@ -51,4 +51,5 @@
 ## [Unreleased]
 - Fix: despite more exceptions-handling attempts, refreshing authentication during API announced validity delay still fails after some time. The automatic authentification refresh delay is now set to an arbitrary value (4h), shorter than API announced duration validity, and a full login is done again when authentication expires unexpectedly (will generate non-blocking error messages in logs).
 - Change: stove alerts are now correctly displayed as warning in logs, using manufacturer-set error codes ("E7", etc.) instead of the alarm integer values stored in stove.
+- Change: reported temperatures now have a 0.5°C precision, if available from stove.
 - Change: stove data is now automatically refreshed every hour, even if no one is asking (so in case of error/freeze, last status in app is at most 1h-old).
