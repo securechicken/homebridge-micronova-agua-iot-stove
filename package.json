@@ -1,6 +1,6 @@
 {
 	"name": "homebridge-micronova-agua-iot-stove",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"description": "Homebridge plugin to manage a Micronova's Agua IOT WiFi module controlled stove",
 	"main": "index.js",
 	"files": [
